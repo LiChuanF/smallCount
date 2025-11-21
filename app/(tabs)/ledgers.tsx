@@ -1,23 +1,11 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { useState } from "react";
+import { Text, View } from "react-native";
 
 export default function LedgersPage() {
+  const [currentTheme, setCurrentTheme] = useState('default');
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>账本页面</Text>
+    <View className="mt-20">
+      <Text className="text-2xl font-bold text-primary-500 dark:text-primary-300">当前主题: {currentTheme}</Text>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: '#fff',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 16,
-  },
-});

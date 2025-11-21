@@ -3,10 +3,11 @@ import CalendarWidget from "@/components/widgets/CalendarWidget";
 import { useRouter } from "expo-router";
 import {
   ScrollView,
+  SectionList,
   StatusBar,
+  StyleSheet,
   Text,
-  TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 // 组件导入
@@ -17,39 +18,125 @@ import { useShadowStyle } from "@/hooks/use-shadow";
 import { useThemeConfig } from "@/hooks/use-theme-config";
 import { useState } from "react";
 
-// 模拟数据
-const mockTransactions = [
+// 模拟数据 - 按日期分组的数据结构
+const mockTransactionsByDate = [
   {
-    id: "1",
-    amount: 128.5,
-    description: "午餐",
-    type: "expense" as const,
-    category: "餐饮",
-    date: "2024-01-15",
-    icon: "🍔",
-    color: "#FF9500",
+    title: "11月20日 · 今天",
+    total: { expense: 92.40, income: 0 },
+    data: [
+      {
+        id: "1",
+        amount: 92.40,
+        description: "午餐",
+        type: "expense" as const,
+        category: "餐饮",
+        date: "2024-11-20",
+        icon: "🍜",
+        color: "#FF9500",
+        paymentMethod: "微信",
+      },
+    ],
   },
   {
-    id: "2",
-    amount: 5000.0,
-    description: "工资",
-    type: "income" as const,
-    category: "工资收入",
-    date: "2024-01-15",
-    icon: "💰",
-    color: "#34C759",
+    title: "11月19日 · 昨天", 
+    total: { expense: 0, income: 300.00 },
+    data: [
+      {
+        id: "2",
+        amount: 300.00,
+        description: "兼职收入",
+        type: "income" as const,
+        category: "工资收入",
+        date: "2024-11-19",
+        icon: "💰",
+        color: "#34C759",
+        paymentMethod: "支付宝",
+      },
+    ],
   },
   {
-    id: "3",
-    amount: 89.9,
-    description: "超市购物",
-    type: "expense" as const,
-    category: "日用品",
-    date: "2024-01-14",
-    icon: "🛒",
-    color: "#5AC8FA",
+    title: "11月18日 · 周一",
+    total: { expense: 178.90, income: 0 },
+    data: [
+      {
+        id: "3",
+        amount: 178.90,
+        description: "超市采购",
+        type: "expense" as const,
+        category: "日用品",
+        date: "2024-11-18",
+        icon: "🛒",
+        color: "#5AC8FA",
+        paymentMethod: "招商信用卡",
+      },
+    ],
   },
 ];
+
+// 日期分组头部组件
+const DateSectionHeader = ({ title, total }: { title: string; total: { expense: number; income: number } }) => {
+  const totalText = total.income > 0 ? `收: ${total.income.toFixed(2)}` : `支: ${total.expense.toFixed(2)}`;
+  
+  return (
+    <View className="flex-row justify-between items-center bg-transparent px-4 py-2 mt-4 dark:border-gray-800">
+      <Text className="text-sm font-medium text-gray-400 dark:text-gray-500">{title}</Text>
+      <Text className="text-sm font-medium text-gray-400 dark:text-gray-500">{totalText}</Text>
+    </View>
+  );
+};
+
+const DetailList = () => {
+  const handleViewAllTransactions = () => {
+    // navigation.navigate(Routes.TRANSACTIONS as any);
+    // 暂时注释，因为还没有创建交易列表页面
+  };
+
+  // 渲染每个交易项
+  const renderTransactionItem = ({ item }: { item: any }) => (
+    <View>
+      <TransactionItem
+        key={item.id}
+        title={item.description}
+        amount={item.amount}
+        type={item.type}
+        category={item.category}
+        date={item.date}
+        paymentMethod={item.paymentMethod}
+        icon={item.icon}
+      />
+    </View>
+  );
+
+  // 渲染分组头部
+  const renderSectionHeader = ({ section }: { section: any }) => (
+    <DateSectionHeader title={section.title} total={section.total} />
+  );
+
+  return (
+     <SectionList
+        sections={mockTransactionsByDate}
+        keyExtractor={(item) => item.id}
+        renderItem={renderTransactionItem}
+        renderSectionHeader={renderSectionHeader}
+        stickySectionHeadersEnabled={true}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.sectionListContent}
+        style={styles.sectionList}
+      />
+  );
+};
+
+const styles = StyleSheet.create({
+  sectionListContent: {
+    paddingBottom: 16,
+  },
+  sectionList: {
+    maxHeight: 400,
+  },
+  transactionItemContainer: {
+    paddingHorizontal: 1,
+  },
+});
 
 export default function HomeScreen() {
   const theme = useThemeConfig();
@@ -86,11 +173,6 @@ export default function HomeScreen() {
     console.log("添加交易:", type);
   };
 
-  const handleViewAllTransactions = () => {
-    // navigation.navigate(Routes.TRANSACTIONS as any);
-    // 暂时注释，因为还没有创建交易列表页面
-  };
-
   const handleNavigateToStats = () => {
     router.push("/stats");
   };
@@ -98,8 +180,6 @@ export default function HomeScreen() {
   const handleNavigateToLedgers = () => {
     router.push("/ledgers");
   };
-
-
 
   return (
     <SafeAreaView className="flex-1 bg-white dark:bg-black">
@@ -112,15 +192,14 @@ export default function HomeScreen() {
         onTabChange={handleTabChange}
       />
 
-      <ScrollView className="flex-1 px-3" showsVerticalScrollIndicator={false}>
-        {activeTab === 'calendar' ? (
-          <>
-            {/* 余额组件 */}
-            <BalanceWidget balance={12580.5} income={5000.0} expense={218.4} />
+      {activeTab === 'calendar' ? (
+        <ScrollView className="flex-1 px-3" showsVerticalScrollIndicator={false}>
+          {/* 余额组件 */}
+          <BalanceWidget balance={12580.5} income={5000.0} expense={218.4} />
 
-            {/* 日历组件 - 传入测试数据 */}
-            <Card className="mb-4">
-              <CalendarWidget
+          {/* 日历组件 - 传入测试数据 */}
+          <Card className="mb-4">
+            <CalendarWidget
               transactionsData={{
                 '2025-11-12': { expense: 120.50, income: 0 },
                 '2025-11-13': { expense: 0, income: 500.00 },
@@ -154,46 +233,18 @@ export default function HomeScreen() {
                 marginBottom: 16,
               }}
             />
-
-            <View>
-              
-            </View>
             </Card>
-          </>
-        ) : (
-          <>
-            {/* 明细列表视图 */}
-            <Card>
-              <View className="flex-row justify-between items-center mb-4">
-                <Text className="text-lg font-semibold text-charcoal-900 dark:text-charcoal-100">
-                  交易明细
-                </Text>
-                <TouchableOpacity onPress={handleViewAllTransactions}>
-                  <Text className="text-sm text-primary-400 dark:text-primary-200 font-medium">
-                    查看全部
-                  </Text>
-                </TouchableOpacity>
-              </View>
 
-              <View className="gap-2">
-                {mockTransactions.map((transaction) => (
-                  <TransactionItem
-                    key={transaction.id}
-                    title={transaction.description}
-                    amount={transaction.amount}
-                    type={transaction.type}
-                    category={transaction.category}
-                    date={transaction.date}
-                  />
-                ))}
-              </View>
-            </Card>
-          </>
-        )}
-
-        {/* 底部间距 */}
-      <View className="h-8" />
-    </ScrollView>
+          <View>
+            
+          </View>
+          
+          {/* 底部间距 */}
+          <View className="h-8" />
+        </ScrollView>
+      ) : (
+        <DetailList />
+      )}
     </SafeAreaView>
   );
 }
