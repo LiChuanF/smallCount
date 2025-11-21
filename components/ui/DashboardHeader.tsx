@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Text, TouchableOpacity, View, Platform } from "react-native";
+import { Platform, Text, TouchableOpacity, View } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
 interface DashboardHeaderProps {
@@ -88,7 +88,7 @@ export default function DashboardHeader({
           {Platform.OS === 'web' ? (
             <View 
               className={`absolute top-1 bottom-1 w-1/2 rounded-md bg-white dark:bg-gray-700 shadow-sm transition-all duration-300 ease-in-out ${
-                activeTab === 'calendar' ? 'left-1' : 'left-1/2'
+                activeTab === 'calendar' ? 'left-1' : 'left-[calc(50%-4px)]'
               }`}
             />
           ) : (
