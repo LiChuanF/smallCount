@@ -1,35 +1,24 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
+import BottomNav from "@/components/ui/BottomNav";
+import { Tabs } from "expo-router";
 
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
+/**
+ * Tabs 布局 - 包含底部导航的 Tab 页面容器
+ */
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
-        tabBarButton: HapticTab,
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
-        }}
-      />
+        tabBarStyle: {
+          display: 'none',
+        },
+      }}
+      tabBar={(props) => <BottomNav />}
+    >
+      <Tabs.Screen name="index" options={{ title: "明细" }} />
+      <Tabs.Screen name="stats" options={{ title: "统计分析" }} />
+      <Tabs.Screen name="ledgers" options={{ title: "账本管理" }} />
+      <Tabs.Screen name="profile" options={{ title: "个人中心" }} />
     </Tabs>
   );
 }

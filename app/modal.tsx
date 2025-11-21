@@ -1,29 +1,28 @@
-import { Link } from 'expo-router';
-import { StyleSheet } from 'react-native';
-
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import DashboardHeader from "@/components/ui/DashboardHeader";
+import React, { useState } from "react";
+import { Text, View } from 'react-native';
 
 export default function ModalScreen() {
+  const [showDatePicker, setShowDatePicker] = useState(false);
+    // Tab切换状态
+    const [activeTab, setActiveTab] = useState<"calendar" | "details">("details");
+    // 显示日期选择器
+    const showDatepicker = () => {
+      setShowDatePicker(true);
+    };
+    // Tab切换处理
+    const handleTabChange = (tab: "calendar" | "details") => {
+      console.log("切换到 Tab:", tab);
+      setActiveTab(tab);
+    };
   return (
-    <ThemedView style={styles.container}>
-      <ThemedText type="title">This is a modal</ThemedText>
-      <Link href="/" dismissTo style={styles.link}>
-        <ThemedText type="link">Go to home screen</ThemedText>
-      </Link>
-    </ThemedView>
+   <View><DashboardHeader
+        selectedDate={new Date()}
+        onDatePress={showDatepicker}
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+      />
+      <Text className="text-2xl font-bold text-blue-900">统计页面</Text>
+      {activeTab === "calendar" ? <Text>日历视图</Text> : <Text>详情视图</Text>}</View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  link: {
-    marginTop: 15,
-    paddingVertical: 15,
-  },
-});
