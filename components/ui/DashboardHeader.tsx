@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Text, TouchableOpacity, View, Platform } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
 interface DashboardHeaderProps {
@@ -84,11 +84,19 @@ export default function DashboardHeader({
             setContainerWidth(width);
           }}
         >
-          {/* 滑块背景 */}
-          <Animated.View 
-            style={sliderStyle}
-            className="absolute top-1 bottom-1 w-1/2 rounded-md bg-white dark:bg-gray-700 shadow-sm"
-          />
+          {/* 滑块背景 - 根据平台使用不同的动画方案 */}
+          {Platform.OS === 'web' ? (
+            <View 
+              className={`absolute top-1 bottom-1 w-1/2 rounded-md bg-white dark:bg-gray-700 shadow-sm transition-all duration-300 ease-in-out ${
+                activeTab === 'calendar' ? 'left-1' : 'left-1/2'
+              }`}
+            />
+          ) : (
+            <Animated.View 
+              style={sliderStyle}
+              className="absolute top-1 bottom-1 w-1/2 rounded-md bg-white dark:bg-gray-700 shadow-sm"
+            />
+          )}
           
           <TouchableOpacity
             onPress={() => onTabChange('calendar')}
