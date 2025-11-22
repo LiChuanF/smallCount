@@ -1,8 +1,9 @@
 import { useTheme } from '@/context/ThemeContext';
+import { useSystemInit } from '@/hooks/use-system-init';
 import { Theme as NavigationTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { vars } from 'nativewind'; // NativeWind 提供的变量注入工具
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View } from 'react-native';
 
 export const RootNavigator = () => {
@@ -50,6 +51,15 @@ export const RootNavigator = () => {
     '--color-notification': theme.colors.notification,
     '--color-secondary': theme.colors.secondary,
   });
+
+  const { isReady, error, stage } = useSystemInit();
+ // 监听状态变化以隐藏启动屏
+  useEffect(() => {
+    if (isReady || error) {
+      // 当准备就绪或报错时，隐藏原生启动屏
+      console.log('系统初始化完成:', { isReady, error, stage });
+    }
+  }, [isReady, error]);
 
   return (
     // style={nativeWindVars} 将变量注入到根节点，所有子组件的 Tailwind 类都能读取到

@@ -3,7 +3,7 @@ module.exports = function (api) {
   return {
     presets: [
       ["babel-preset-expo", { jsxImportSource: "nativewind" }],
-      "nativewind/babel",
+      "nativewind/babel"
     ],
     plugins: [
       // react-native-reanimated 插件 - 必须放在其他插件之前
@@ -29,6 +29,7 @@ module.exports = function (api) {
           ],
         },
       ],
+      ["inline-import", { "extensions": [".sql"] }]
     ],
   };
 };

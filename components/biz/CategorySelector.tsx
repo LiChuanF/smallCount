@@ -1,48 +1,20 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
-
-interface Category {
-  id: string;
-  name: string;
-  icon: string;
-  color: string;
-}
+import { View, Text, StyleSheet } from 'react-native';
 
 interface CategorySelectorProps {
-  categories: Category[];
+  // 保留接口兼容性，但不再需要实际使用这些参数
+  categories?: any[];
   selectedCategory?: string;
-  onSelectCategory: (categoryId: string) => void;
+  onSelectCategory?: (categoryId: string) => void;
 }
 
-export default function CategorySelector({ 
-  categories, 
-  selectedCategory, 
-  onSelectCategory 
-}: CategorySelectorProps) {
+// 注意：此组件已被标记为废弃，因为分类功能已被移除
+// 系统现在使用标签系统代替分类
+export default function CategorySelector({}: CategorySelectorProps) {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>选择分类</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        {categories.map((category) => (
-          <TouchableOpacity
-            key={category.id}
-            style={[
-              styles.categoryItem,
-              selectedCategory === category.id && styles.selected,
-              { backgroundColor: category.color }
-            ]}
-            onPress={() => onSelectCategory(category.id)}
-          >
-            <Text style={styles.icon}>{category.icon}</Text>
-            <Text style={[
-              styles.categoryName,
-              selectedCategory === category.id && styles.selectedText
-            ]}>
-              {category.name}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      <Text style={styles.title}>分类功能已移除</Text>
+      <Text style={styles.description}>系统已改用标签系统，您可以在添加交易时直接添加标签。</Text>
     </View>
   );
 }
@@ -50,36 +22,19 @@ export default function CategorySelector({
 const styles = StyleSheet.create({
   container: {
     marginVertical: 16,
+    padding: 16,
+    backgroundColor: '#F5F5F7',
+    borderRadius: 12,
   },
   title: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 12,
+    marginBottom: 8,
     color: '#1C1C1E',
   },
-  categoryItem: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    marginRight: 12,
-    minWidth: 80,
-  },
-  selected: {
-    borderWidth: 2,
-    borderColor: '#007AFF',
-  },
-  icon: {
-    fontSize: 24,
-    marginBottom: 4,
-  },
-  categoryName: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#FFFFFF',
-  },
-  selectedText: {
-    fontWeight: '600',
+  description: {
+    fontSize: 14,
+    color: '#8E8E93',
+    lineHeight: 20,
   },
 });

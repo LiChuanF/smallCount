@@ -28,32 +28,41 @@ const mockTransactionsByDate = [
         amount: 92.4,
         description: "午餐",
         type: "expense" as const,
-        category: "餐饮",
         date: "2024-11-20",
         icon: "🍜",
         color: "#FF9500",
         paymentMethod: "微信",
+        tags: [
+          { id: "tag1", name: "餐饮", color: "#FF9500" },
+          { id: "tag2", name: "午餐", color: "#FF6B6B" }
+        ]
       },{
         id: "2",
         amount: 92.4,
         description: "午餐",
         type: "expense" as const,
-        category: "餐饮",
         date: "2024-11-20",
         icon: "🍜",
         color: "#FF9500",
         paymentMethod: "微信",
+        tags: [
+          { id: "tag1", name: "餐饮", color: "#FF9500" },
+          { id: "tag2", name: "午餐", color: "#FF6B6B" }
+        ]
       },
       {
         id: "3",
         amount: 300.0,
         description: "兼职收入",
         type: "income" as const,
-        category: "工资收入",
         date: "2024-11-19",
         icon: "💰",
         color: "#34C759",
         paymentMethod: "支付宝",
+        tags: [
+          { id: "tag3", name: "收入", color: "#34C759" },
+          { id: "tag4", name: "兼职", color: "#4ECDC4" }
+        ]
       },
     ],
   },
@@ -66,11 +75,14 @@ const mockTransactionsByDate = [
         amount: 300.0,
         description: "兼职收入",
         type: "income" as const,
-        category: "工资收入",
         date: "2024-11-19",
         icon: "💰",
         color: "#34C759",
         paymentMethod: "支付宝",
+        tags: [
+          { id: "tag3", name: "收入", color: "#34C759" },
+          { id: "tag4", name: "兼职", color: "#4ECDC4" }
+        ]
       },
     ],
   },
@@ -83,11 +95,14 @@ const mockTransactionsByDate = [
         amount: 178.9,
         description: "超市采购",
         type: "expense" as const,
-        category: "日用品",
         date: "2024-11-18",
         icon: "🛒",
         color: "#5AC8FA",
         paymentMethod: "招商信用卡",
+        tags: [
+          { id: "tag5", name: "购物", color: "#45B7D1" },
+          { id: "tag6", name: "日用品", color: "#FED766" }
+        ]
       },
     ],
   },
@@ -132,9 +147,9 @@ const DetailList = () => {
         title={item.description}
         amount={item.amount}
         type={item.type}
-        category={item.category}
         date={item.date}
         paymentMethod={item.paymentMethod}
+        tags={item.tags}
         icon={item.icon}
       />
     </View>

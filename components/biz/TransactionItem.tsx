@@ -1,23 +1,29 @@
 import React from 'react';
 import { Text, View } from 'react-native';
 
+interface Tag {
+  id: string;
+  name: string;
+  color?: string;
+}
+
 interface TransactionItemProps {
   title: string;
   amount: number;
-  category: string;
   date: string;
   type: 'income' | 'expense';
   paymentMethod?: string;
+  tags?: Tag[];
   icon?: string;
 }
 
 export default function TransactionItem({ 
   title, 
   amount, 
-  category, 
   date, 
   type,
   paymentMethod,
+  tags = [],
   icon = "💰"
 }: TransactionItemProps) {
   return (
@@ -28,12 +34,21 @@ export default function TransactionItem({
         </View>
         <View className="flex-1">
           <Text className="text-base font-medium text-gray-900 mb-1 dark:text-gray-100">{title}</Text>
-          <View className="flex-row items-center">
+          <View className="flex-row items-center flex-wrap gap-2">
             {paymentMethod && (
               <View className="bg-gray-100 px-2 py-0.5 rounded-full dark:bg-gray-800">
                 <Text className="text-xs text-gray-400 dark:text-gray-500">{paymentMethod}</Text>
               </View>
             )}
+            {tags.map(tag => (
+              <View 
+                key={tag.id} 
+                className="px-2 py-0.5 rounded-full" 
+                style={{ backgroundColor: tag.color || '#E5E7EB' }}
+              >
+                <Text className="text-xs text-gray-700 dark:text-gray-300">{tag.name}</Text>
+              </View>
+            ))}
           </View>
         </View>
       </View>
