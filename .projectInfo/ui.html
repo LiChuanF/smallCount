@@ -1,0 +1,2242 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mono (Money Note) - UI V4 Tabbed Home & Minimal Profile</title>
+    <style>
+      /* --- 1. CSS Variables Definition --- */
+      :root {
+        /* --- Accent Color Palettes --- */
+        --accent-green: #10b981;
+        --accent-blue: #3b82f6;
+        --accent-purple: #8b5cf6;
+        --accent-orange: #f59e0b;
+
+        /* Constants & Default Primary */
+        --primary: var(--accent-green); /* Default to green */
+        --danger: #ef4444;
+        --screen-w: 375px;
+        --screen-h: 812px;
+
+        /* Light Mode (Default) */
+        --bg-app: #f3f4f6;
+        --bg-card: #ffffff;
+        --bg-modal: #ffffff;
+        --text-main: #1f2937;
+        --text-sub: #6b7280;
+        --text-on-primary: #ffffff;
+        --border: #e5e7eb;
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        --shadow-lg:
+          0 10px 15px -3px rgba(0, 0, 0, 0.1),
+          0 4px 6px -2px rgba(0, 0, 0, 0.05);
+
+        --tab-bg: rgba(255, 255, 255, 0.95);
+        --key-bg: #ffffff;
+        --key-bg-active: #f9fafb;
+        --key-bg-special: #e5e7eb;
+        --input-bg: #f3f4f6;
+        --pill-bg: #e5e7eb;
+        --icon-bg: #f3f4f6;
+
+        --cat-selected-bg: #d1fae5;
+        --chart-bar-bg: #d1fae5;
+
+        /* Calendar Specific */
+        --cal-bg-today: var(--primary);
+        --cal-text-today: var(--text-on-primary);
+      }
+
+      /* --- 2. Dark Mode Overrides --- */
+      [data-theme="dark"] {
+        --bg-app: #000000;
+        --bg-card: #1c1c1e;
+        --bg-modal: #1c1c1e;
+        --text-main: #f3f4f6;
+        --text-sub: #9ca3af;
+        --text-on-primary: #ffffff;
+        --border: #2c2c2e;
+        --shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        --shadow-lg: 0 15px 25px -5px rgba(0, 0, 0, 0.6);
+
+        --tab-bg: rgba(28, 28, 30, 0.95);
+        --key-bg: #2c2c2e;
+        --key-bg-active: #3a3a3c;
+        --key-bg-special: #1c1c1e;
+        --input-bg: #1c1c1e;
+        --pill-bg: #2c2c2e;
+        --icon-bg: #2c2c2e;
+
+        --cat-selected-bg: rgba(16, 185, 129, 0.2);
+        --chart-bar-bg: rgba(16, 185, 129, 0.2);
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
+        /* Smooth transition for theme & color switch */
+        transition:
+          background-color 0.3s,
+          color 0.3s,
+          border-color 0.3s,
+          fill 0.3s,
+          box-shadow 0.3s;
+      }
+
+      body {
+        background-color: #121212; /* Outer Canvas Darker */
+        height: 100vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* --- Toolbar --- */
+      .toolbar {
+        height: 60px;
+        background: #1f1f1f;
+        color: white;
+        display: flex;
+        align-items: center;
+        padding: 0 24px;
+        border-bottom: 1px solid #333;
+        justify-content: space-between;
+        z-index: 100;
+      }
+      .toolbar h1 {
+        font-size: 18px;
+        font-weight: 600;
+      }
+      .btn-toggle {
+        background: #333;
+        border: 1px solid #444;
+        color: white;
+        padding: 6px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .btn-toggle:hover {
+        background: #444;
+      }
+
+      /* --- Canvas Area --- */
+      .canvas {
+        flex: 1;
+        overflow: auto;
+        display: flex;
+        padding: 60px;
+        gap: 60px;
+        align-items: flex-start;
+        scrollbar-width: thin;
+        scrollbar-color: #555 #1e1e1e;
+      }
+
+      /* --- Phone Frame --- */
+      .device-mockup {
+        width: var(--screen-w);
+        height: var(--screen-h);
+        background: var(--bg-app);
+        border-radius: 40px;
+        position: relative;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        overflow: hidden;
+        flex-shrink: 0;
+        border: 8px solid #1a1a1a; /* Phone bezel */
+      }
+
+      .notch {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 120px;
+        height: 30px;
+        background: #000;
+        border-bottom-left-radius: 16px;
+        border-bottom-right-radius: 16px;
+        z-index: 999;
+      }
+
+      /* --- Screen Layouts --- */
+      .screen-content {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+        padding-top: 44px;
+        padding-bottom: 80px;
+        color: var(--text-main); /* Global text color */
+      }
+      .screen-content.no-tab {
+        padding-bottom: 0;
+      }
+      .screen-content::-webkit-scrollbar {
+        display: none;
+      }
+
+      /* --- Components: Typography --- */
+      .h1 {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--text-main);
+      }
+      .h2 {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--text-main);
+      }
+      .text-sm {
+        font-size: 12px;
+        color: var(--text-sub);
+      }
+      .text-md {
+        font-size: 14px;
+        color: var(--text-main);
+      }
+      .money-exp {
+        color: var(--text-main);
+        font-weight: 600;
+      }
+      .money-inc {
+        color: var(--primary);
+        font-weight: 600;
+      }
+
+      .pill {
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 10px;
+        background: var(--pill-bg);
+        color: var(--text-sub);
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+      }
+
+      /* --- Components: Cards & Lists --- */
+      .card {
+        background: var(--bg-card);
+        border-radius: 16px;
+        padding: 16px;
+        margin: 0 16px 16px 16px;
+        box-shadow: var(--shadow);
+      }
+
+      .date-header {
+        display: flex;
+        justify-content: space-between;
+        padding: 12px 16px 8px 16px;
+        font-size: 12px;
+        color: var(--text-sub);
+        background: var(--bg-app); /* Match app bg for sticky */
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        transition: background 0.3s;
+      }
+
+      .transaction-item {
+        display: flex;
+        align-items: center;
+        background: var(--bg-card);
+        padding: 16px;
+        margin-bottom: 1px;
+        border-bottom: 1px solid var(--bg-app); /* Use bg-app as separator */
+      }
+      .transaction-item:last-child {
+        border-bottom-left-radius: 12px;
+        border-bottom-right-radius: 12px;
+        border-bottom: none;
+      }
+      .transaction-item:first-child {
+        border-top-left-radius: 12px;
+        border-top-right-radius: 12px;
+      }
+
+      .t-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 20px;
+        background: var(--icon-bg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        margin-right: 12px;
+        color: var(--text-main);
+      }
+      .t-info {
+        flex: 1;
+      }
+      .t-amount {
+        font-weight: 600;
+        font-size: 16px;
+        color: var(--text-main);
+      }
+
+      /* --- Component: Tab Bar --- */
+      .tab-bar {
+        position: absolute;
+        bottom: 0;
+        width: 100%;
+        height: 80px;
+        background: var(--tab-bg);
+        backdrop-filter: blur(10px);
+        border-top: 1px solid var(--border);
+        display: flex;
+        justify-content: space-around;
+        align-items: flex-start;
+        padding-top: 12px;
+        z-index: 99;
+      }
+      .tab-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        color: var(--text-sub);
+        font-size: 10px;
+        width: 60px;
+        cursor: pointer;
+      }
+      .tab-item.active {
+        color: var(--primary);
+      }
+      .fab {
+        width: 56px;
+        height: 56px;
+        background: var(--primary);
+        border-radius: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-on-primary); /* Inverted color */
+        margin-top: -24px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        font-size: 28px;
+        cursor: pointer;
+      }
+
+      /* --- Specific Screen: Dashboard (Home) & Internal Tabs --- */
+      .dashboard-header {
+        padding: 16px;
+        /* margin-bottom: 8px; Remove bottom margin for tabs */
+      }
+      .date-selector {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        padding: 4px 8px;
+        margin-left: -8px;
+        border-radius: 8px;
+        transition: background 0.2s;
+      }
+      .date-selector:active {
+        background: var(--icon-bg);
+      }
+
+      /* NEW: Home Internal Tabs (Segmented Control style) */
+      .home-tabs-control {
+        display: flex;
+        background: var(--pill-bg); /* Use pill background for container */
+        border-radius: 10px;
+        padding: 4px;
+        margin: 0 16px 16px 16px;
+      }
+      .home-tab-btn {
+        flex: 1;
+        text-align: center;
+        padding: 8px 0;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-sub);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .home-tab-btn.active {
+        background: var(--bg-card);
+        color: var(--text-main);
+        box-shadow: var(--shadow);
+      }
+
+      /* Home Tab Content Containers */
+      .home-tab-view {
+        display: none; /* Hidden by default */
+        animation: fadeIn 0.3s ease;
+      }
+      .home-tab-view.active {
+        display: block; /* Show active */
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(5px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* Calendar Widget Styles */
+      .calendar-widget {
+        padding: 0 16px;
+        margin-bottom: 24px;
+      }
+      .cal-header {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        text-align: center;
+        font-size: 12px;
+        color: var(--text-sub);
+        margin-bottom: 12px;
+      }
+      .cal-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 10px;
+      }
+      .cal-day {
+        aspect-ratio: 1; /* Make cells square */
+        background: var(--bg-card);
+        border-radius: 14px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        color: var(--text-main);
+        position: relative;
+        box-shadow: var(--shadow);
+        cursor: pointer;
+      }
+      .cal-date {
+        font-weight: 600;
+        margin-bottom: 2px;
+      }
+      .cal-data {
+        font-size: 9px;
+        line-height: 1.2;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        font-weight: 500;
+      }
+      .cal-inc {
+        color: var(--primary);
+      }
+      .cal-exp {
+        color: var(--danger);
+      }
+
+      .cal-day.is-today {
+        background: var(--cal-bg-today);
+        color: var(--cal-text-today);
+      }
+      .cal-day.is-today .cal-inc,
+      .cal-day.is-today .cal-exp {
+        color: var(--cal-text-today);
+        opacity: 0.9;
+      }
+      .cal-day.not-current {
+        opacity: 0.4;
+        box-shadow: none;
+        background: transparent;
+      }
+
+      .overview-card {
+        background: var(--primary);
+        color: var(--text-on-primary);
+        border-radius: 20px;
+        padding: 24px;
+        margin: 0 16px 24px 16px;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+      }
+      .ov-row {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 16px;
+      }
+      .ov-item h4 {
+        font-size: 12px;
+        opacity: 0.8;
+        font-weight: 400;
+      }
+      .ov-item span {
+        font-size: 18px;
+        font-weight: 600;
+      }
+
+      /* --- Specific Screen: Add Transaction --- */
+      .add-screen {
+        background: var(--bg-modal);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+      .type-switch {
+        display: flex;
+        justify-content: center;
+        padding: 10px 0;
+      }
+      .ts-btn {
+        padding: 8px 24px;
+        font-weight: 600;
+        color: var(--text-sub);
+        border-radius: 20px;
+      }
+      .ts-btn.active {
+        background: var(--bg-app);
+        color: var(--text-main);
+      }
+      .input-area {
+        padding: 20px 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .input-label {
+        font-size: 14px;
+        color: var(--text-sub);
+      }
+      .amount-display {
+        font-size: 48px;
+        font-weight: 700;
+        color: var(--text-main);
+      }
+      .category-grid {
+        flex: 1;
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 16px;
+        padding: 0 24px;
+        align-content: start;
+        overflow-y: auto;
+      }
+      .cat-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+      }
+      .cat-icon {
+        width: 48px;
+        height: 48px;
+        background: var(--icon-bg);
+        color: var(--text-main);
+        border-radius: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        transition: all 0.2s;
+      }
+      .cat-item.selected .cat-icon {
+        background: var(--cat-selected-bg);
+        border: 2px solid var(--primary);
+        color: var(--text-main);
+      }
+      .cat-name {
+        font-size: 10px;
+        color: var(--text-sub);
+      }
+      .num-pad {
+        background: var(--bg-app);
+        padding-bottom: 30px;
+        display: grid;
+        grid-template-columns: 3fr 1fr;
+        border-top: 1px solid var(--border);
+      }
+      .num-keys {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+      }
+      .action-keys {
+        display: flex;
+        flex-direction: column;
+      }
+      .key {
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        font-weight: 500;
+        border-right: 1px solid var(--border);
+        border-top: 1px solid var(--border);
+        background: var(--key-bg);
+        color: var(--text-main);
+        cursor: pointer;
+      }
+      .key:active {
+        background: var(--key-bg-active);
+      }
+      .key-done {
+        flex: 1;
+        background: var(--primary);
+        color: var(--text-on-primary);
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
+
+      /* --- Specific Screen: Assets / Accounts --- */
+      .asset-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: var(--bg-card);
+        padding: 20px;
+        margin: 0 16px 12px 16px;
+        border-radius: 16px;
+        box-shadow: var(--shadow);
+      }
+      .asset-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .asset-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 14px;
+        font-weight: bold;
+      }
+      .bg-wx {
+        background: #22c55e;
+      }
+      .bg-ali {
+        background: #3b82f6;
+      }
+      .bg-bank {
+        background: #ef4444;
+      }
+      .bg-cash {
+        background: #f59e0b;
+      }
+
+      /* --- Specific Screen: Personal Center (MINIMALIST) --- */
+      /* New Minimal Profile Layout */
+      .profile-minimal {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 40px 16px 30px;
+      }
+      .pm-avatar {
+        width: 96px;
+        height: 96px;
+        border-radius: 48px;
+        background: var(--primary); /* Use primary color */
+        color: var(--text-on-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 40px;
+        font-weight: 700;
+        margin-bottom: 16px;
+        box-shadow: var(--shadow-lg);
+      }
+      .pm-name {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--text-main);
+        margin-bottom: 4px;
+      }
+      .pm-info {
+        font-size: 13px;
+        color: var(--text-sub);
+      }
+
+      /* Settings Groups (Unchanged) */
+      .setting-group {
+        background: var(--bg-card);
+        margin: 0 16px 16px;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: var(--shadow);
+      }
+      .setting-group-title {
+        padding: 16px 16px 8px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-sub);
+      }
+      .setting-item {
+        padding: 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--bg-app);
+        font-size: 14px;
+        color: var(--text-main);
+        cursor: pointer;
+      }
+      .setting-item:last-child {
+        border-bottom: none;
+      }
+
+      /* Color Picker */
+      .color-options {
+        display: flex;
+        gap: 12px;
+      }
+      .color-circle {
+        width: 26px;
+        height: 26px;
+        border-radius: 13px;
+        cursor: pointer;
+        border: 2px solid transparent;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        transition:
+          transform 0.2s,
+          border-color 0.2s;
+      }
+      .color-circle.active {
+        border-color: var(--text-main);
+        transform: scale(1.1);
+      }
+
+      /* --- Icons & Utilities --- */
+      .icon {
+        width: 24px;
+        height: 24px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .icon-sm {
+        width: 16px;
+        height: 16px;
+        stroke-width: 2.5;
+      }
+      .icon-xs {
+        width: 14px;
+        height: 14px;
+        stroke-width: 2;
+      }
+      .screen-label {
+        position: absolute;
+        top: -40px;
+        left: 0;
+        color: white;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+      }
+      .sep-h {
+        height: 1px;
+        background: var(--border);
+        margin: 0 24px;
+      }
+      .toolbar-section {
+        padding: 8px 16px;
+        background: var(--bg-app);
+        display: flex;
+        gap: 12px;
+        border-bottom: 1px solid var(--border);
+      }
+      /* --- 新增：日历交互与明细卡片样式 --- */
+
+      /* 选中日期的样式 */
+      .cal-day.selected {
+        border: 2px solid var(--text-main); /* 选中时显示深色边框 */
+        background: var(--bg-card); /* 保持背景 */
+        transform: scale(0.95); /* 轻微缩小产生按压感 */
+        z-index: 2;
+      }
+
+      /* 选中且是今天的样式特例 */
+      .cal-day.is-today.selected {
+        border-color: var(--text-main);
+        background: var(--cal-bg-today);
+      }
+
+      /* 下方弹出的明细容器 */
+      .day-detail-container {
+        margin: 0 16px 24px 16px;
+        overflow: hidden;
+        display: none; /* 默认隐藏，点击后显示 */
+        animation: slideDown 0.3s ease-out;
+      }
+
+      /* 容器显示的类 */
+      .day-detail-container.show {
+        display: block;
+      }
+
+      /* 明细卡片头部 */
+      .day-card-header {
+        background: var(--bg-card);
+        padding: 12px 16px;
+        border-radius: 16px 16px 0 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--bg-app);
+      }
+
+      /* 修正列表项在卡片内的圆角 */
+      .day-list-wrapper .transaction-item:last-child {
+        border-bottom-left-radius: 16px;
+        border-bottom-right-radius: 16px;
+      }
+      .day-list-wrapper .transaction-item {
+        border-radius: 0; /* 重置默认圆角 */
+      }
+
+      @keyframes slideDown {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+      <div style="display: flex; gap: 10px; align-items: center">
+        <div
+          style="
+            width: 20px;
+            height: 20px;
+            background: var(--primary);
+            border-radius: 4px;
+          "
+        ></div>
+        <h1>Mono App Design System V4</h1>
+      </div>
+      <div style="display: flex; gap: 16px; align-items: center">
+        <button class="btn-toggle" id="theme-toggle">
+          <svg class="icon icon-xs" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="5" />
+            <line x1="12" y1="1" x2="12" y2="3" />
+            <line x1="12" y1="21" x2="12" y2="23" />
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+            <line x1="1" y1="12" x2="3" y2="12" />
+            <line x1="21" y1="12" x2="23" y2="12" />
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+          </svg>
+          Toggle Theme
+        </button>
+        <div class="meta">Updated Now • 5 Screens</div>
+      </div>
+    </div>
+
+    <div class="canvas">
+      <!-- SCREEN 1: HOME / DASHBOARD (NEW TABBED LAYOUT) -->
+      <div style="position: relative">
+        <div class="screen-label">01. 首页 (Home) - Tab模式</div>
+        <div class="device-mockup">
+          <div class="notch"></div>
+          <div class="screen-content">
+            <div class="dashboard-header">
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                "
+              >
+                <div
+                  class="date-selector"
+                  onclick="openMonthPicker()"
+                >
+                  <span class="h2">2025年 11月</span>
+                  <svg class="icon icon-sm" viewBox="0 0 24 24">
+                    <path d="m6 9 6 6 6-6" />
+                  </svg>
+                </div>
+                <svg
+                  class="icon"
+                  viewBox="0 0 24 24"
+                  style="width: 20px; color: var(--text-sub)"
+                >
+                  <path
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
+                  />
+                </svg>
+              </div>
+            </div>
+
+            <!-- NEW Internal Home Tabs -->
+            <div class="home-tabs-control">
+              <div class="home-tab-btn active" data-target="tab-calendar">
+                日历视图
+              </div>
+              <div class="home-tab-btn" data-target="tab-details">明细列表</div>
+            </div>
+
+            <!-- TAB CONTENT 1: Calendar View -->
+            <div class="home-tab-view active" id="tab-calendar">
+              <!-- Calendar Widget -->
+              <div class="calendar-widget">
+                <div class="cal-header">
+                  <div>日</div>
+                  <div>一</div>
+                  <div>二</div>
+                  <div>三</div>
+                  <div>四</div>
+                  <div>五</div>
+                  <div>六</div>
+                </div>
+                <div class="cal-grid" id="calendar-grid">
+                  <!-- 为了演示JS交互，我给部分日期加了 data-day 属性 -->
+
+                  <!-- Row 1 -->
+                  <div class="cal-day not-current">
+                    <span class="cal-date">26</span>
+                  </div>
+                  <div class="cal-day not-current">
+                    <span class="cal-date">27</span>
+                  </div>
+                  <div class="cal-day not-current">
+                    <span class="cal-date">28</span>
+                  </div>
+                  <div class="cal-day not-current">
+                    <span class="cal-date">29</span>
+                  </div>
+                  <div class="cal-day not-current">
+                    <span class="cal-date">30</span>
+                  </div>
+                  <div class="cal-day not-current">
+                    <span class="cal-date">31</span>
+                  </div>
+                  <div class="cal-day" data-day="1">
+                    <span class="cal-date">1</span>
+                  </div>
+
+                  <!-- Row 2 -->
+                  <div class="cal-day" data-day="2">
+                    <span class="cal-date">2</span>
+                  </div>
+                  <div class="cal-day" data-day="3">
+                    <span class="cal-date">3</span>
+                  </div>
+                  <div class="cal-day" data-day="4">
+                    <span class="cal-date">4</span>
+                  </div>
+                  <div class="cal-day" data-day="5">
+                    <span class="cal-date">5</span>
+                  </div>
+                  <div class="cal-day" data-day="6">
+                    <span class="cal-date">6</span>
+                  </div>
+                  <div class="cal-day" data-day="7">
+                    <span class="cal-date">7</span>
+                  </div>
+                  <div class="cal-day" data-day="8">
+                    <span class="cal-date">8</span>
+                  </div>
+
+                  <!-- Row 3 (含数据演示) -->
+                  <div class="cal-day" data-day="9">
+                    <span class="cal-date">9</span>
+                  </div>
+                  <div class="cal-day" data-day="10">
+                    <span class="cal-date">10</span>
+                  </div>
+                  <div class="cal-day" data-day="11">
+                    <span class="cal-date">11</span>
+                  </div>
+
+                  <!-- 12号：只有支出 -->
+                  <div class="cal-day" data-day="12">
+                    <span class="cal-date">12</span>
+                    <div class="cal-data">
+                      <span class="cal-exp">-120</span>
+                    </div>
+                  </div>
+
+                  <!-- 13号：只有收入 -->
+                  <div class="cal-day" data-day="13">
+                    <span class="cal-date">13</span>
+                    <div class="cal-data">
+                      <span class="cal-inc">+500</span>
+                    </div>
+                  </div>
+
+                  <div class="cal-day" data-day="14">
+                    <span class="cal-date">14</span>
+                    <div class="cal-data"><span class="cal-exp">-85</span></div>
+                  </div>
+                  <div class="cal-day" data-day="15">
+                    <span class="cal-date">15</span>
+                    <div class="cal-data">
+                      <span class="cal-exp">-256</span>
+                    </div>
+                  </div>
+
+                  <!-- Row 4 -->
+                  <div class="cal-day" data-day="16">
+                    <span class="cal-date">16</span>
+                  </div>
+                  <div class="cal-day" data-day="17">
+                    <span class="cal-date">17</span>
+                    <div class="cal-data"><span class="cal-exp">-45</span></div>
+                  </div>
+                  <div class="cal-day" data-day="18">
+                    <span class="cal-date">18</span>
+                    <div class="cal-data">
+                      <span class="cal-exp">-178</span>
+                    </div>
+                  </div>
+                  <div class="cal-day" data-day="19">
+                    <span class="cal-date">19</span>
+                    <div class="cal-data">
+                      <span class="cal-inc">+300</span>
+                    </div>
+                  </div>
+
+                  <!-- Today 20号 (混合数据) -->
+                  <div class="cal-day is-today" data-day="20">
+                    <span class="cal-date">20</span>
+                    <div class="cal-data"><span class="cal-exp">-92</span></div>
+                  </div>
+
+                  <div class="cal-day" data-day="21">
+                    <span class="cal-date">21</span>
+                  </div>
+                  <div class="cal-day" data-day="22">
+                    <span class="cal-date">22</span>
+                    <div class="cal-data">
+                      <span class="cal-inc">+800</span>
+                    </div>
+                  </div>
+
+                  <!-- Row 5 -->
+                  <div class="cal-day" data-day="23">
+                    <span class="cal-date">23</span>
+                    <div class="cal-data"><span class="cal-exp">-34</span></div>
+                  </div>
+                  <div class="cal-day" data-day="24">
+                    <span class="cal-date">24</span>
+                    <div class="cal-data">
+                      <span class="cal-inc">+150</span>
+                    </div>
+                  </div>
+                  <div class="cal-day" data-day="25">
+                    <span class="cal-date">25</span>
+                    <div class="cal-data">
+                      <span class="cal-exp">-289</span>
+                    </div>
+                  </div>
+                  <div class="cal-day" data-day="26">
+                    <span class="cal-date">26</span>
+                  </div>
+                  <div class="cal-day" data-day="27">
+                    <span class="cal-date">27</span>
+                    <div class="cal-data">
+                      <span class="cal-exp">-123</span>
+                    </div>
+                  </div>
+                  <div class="cal-day" data-day="28">
+                    <span class="cal-date">28</span>
+                    <div class="cal-data"><span class="cal-exp">-67</span></div>
+                  </div>
+                  <div class="cal-day" data-day="29">
+                    <span class="cal-date">29</span>
+                  </div>
+
+                  <!-- Row 6 -->
+                  <div class="cal-day not-current">
+                    <span class="cal-date">30</span>
+                  </div>
+                  <div class="cal-day not-current">
+                    <span class="cal-date">1</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- [NEW] Day Details Card (Dynamic) -->
+              <!-- 这个容器默认隐藏，点击上面的日期后，JS会往这里填充内容 -->
+              <div id="day-detail-wrapper" class="day-detail-container">
+                <!-- Content injected by JS -->
+              </div>
+
+              <!-- Overview Card (Month Summary) -->
+              <div class="overview-card">
+                <div style="opacity: 0.8; font-size: 12px">本月结余 (11月)</div>
+                <div style="font-size: 32px; font-weight: 700; margin-top: 4px">
+                  + 1,250.00
+                </div>
+                <div class="ov-row">
+                  <div class="ov-item">
+                    <h4>收入</h4>
+                    <span>3,550.50</span>
+                  </div>
+                  <div class="ov-item" style="text-align: right">
+                    <h4>支出</h4>
+                    <span>2,300.50</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- TAB CONTENT 2: Details View (Hidden by default) -->
+            <div class="home-tab-view" id="tab-details">
+              <!-- Date Group 1 -->
+              <div class="date-header" style="position: sticky; top: 44px">
+                <!-- Adjusted top for sticky inside tab -->
+                <span>11月20日 · 今天</span>
+                <span>支: 92.40</span>
+              </div>
+              <div style="padding: 0 16px">
+                <div
+                  class="transaction-item"
+                  style="border-radius: 12px; border-bottom: none"
+                >
+                  <div class="t-icon">🍜</div>
+                  <div class="t-info">
+                    <div style="font-weight: 500">午餐</div>
+                    <div style="margin-top: 4px">
+                      <span class="pill">微信</span>
+                    </div>
+                  </div>
+                  <div class="t-amount">- 92.40</div>
+                </div>
+              </div>
+
+              <!-- Date Group 2 (Example Data) -->
+              <div
+                class="date-header"
+                style="position: sticky; top: 44px; margin-top: 16px"
+              >
+                <span>11月19日 · 昨天</span>
+                <span>收: 300.00</span>
+              </div>
+              <div style="padding: 0 16px">
+                <div
+                  class="transaction-item"
+                  style="border-radius: 12px; border-bottom: none"
+                >
+                  <div class="t-icon">💰</div>
+                  <div class="t-info">
+                    <div style="font-weight: 500">兼职收入</div>
+                    <div style="margin-top: 4px">
+                      <span class="pill">支付宝</span>
+                    </div>
+                  </div>
+                  <div class="t-amount money-inc">+ 300.00</div>
+                </div>
+              </div>
+
+              <!-- Date Group 3 (Example Data) -->
+              <div
+                class="date-header"
+                style="position: sticky; top: 44px; margin-top: 16px"
+              >
+                <span>11月18日 · 周一</span>
+                <span>支: 178.90</span>
+              </div>
+              <div style="padding: 0 16px">
+                <div class="transaction-item">
+                  <div class="t-icon">🛒</div>
+                  <div class="t-info">
+                    <div style="font-weight: 500">超市采购</div>
+                    <div style="margin-top: 4px">
+                      <span class="pill">招商信用卡</span>
+                    </div>
+                  </div>
+                  <div class="t-amount">- 178.90</div>
+                </div>
+              </div>
+            </div>
+
+            <div style="height: 20px"></div>
+          </div>
+
+          <!-- Tab Bar -->
+          <div class="tab-bar">
+            <div class="tab-item active">
+              <svg class="icon" viewBox="0 0 24 24">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                <polyline points="9 22 9 12 15 12 15 22" />
+              </svg>
+              <span>明细</span>
+            </div>
+            <div class="tab-item">
+              <svg class="icon" viewBox="0 0 24 24">
+                <path d="M21.21 15.89A10 10 0 1 1 8 2.83" />
+                <path d="M22 12A10 10 0 0 0 12 2v10z" />
+              </svg>
+              <span>统计</span>
+            </div>
+            <div class="fab">+</div>
+            <div class="tab-item">
+              <svg class="icon" viewBox="0 0 24 24">
+                <rect x="2" y="5" width="20" height="14" rx="2" />
+                <line x1="2" y1="10" x2="22" y2="10" />
+              </svg>
+              <span>账户</span>
+              <!-- Renamed asset -->
+            </div>
+            <div class="tab-item">
+              <svg class="icon" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="3" />
+                <path
+                  d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
+                />
+              </svg>
+              <span>设置</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCREEN 2: ADD TRANSACTION (Unchanged) -->
+      <div style="position: relative">
+        <div class="screen-label">02. 记账 (Add)</div>
+        <div class="device-mockup">
+          <div class="notch"></div>
+          <div class="screen-content no-tab add-screen">
+            <div
+              style="
+                padding: 0 16px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+              "
+            >
+              <span style="color: var(--text-sub)">取消</span>
+              <div class="type-switch">
+                <div class="ts-btn active">支出</div>
+                <div class="ts-btn">收入</div>
+                <div class="ts-btn">转账</div>
+              </div>
+              <span style="width: 30px"></span>
+            </div>
+            <div class="input-area">
+              <div style="display: flex; align-items: center; gap: 8px">
+                <div
+                  class="cat-icon"
+                  style="
+                    width: 30px;
+                    height: 30px;
+                    background: var(--icon-bg);
+                    font-size: 16px;
+                  "
+                >
+                  🍜
+                </div>
+                <span class="input-label">餐饮美食 - 微信零钱</span>
+              </div>
+              <div class="amount-display">¥ 38.00</div>
+            </div>
+            <div class="sep-h"></div>
+            <div
+              style="
+                padding: 16px 24px;
+                font-size: 12px;
+                color: var(--text-sub);
+              "
+            >
+              选择分类
+            </div>
+            <div class="category-grid">
+              <div class="cat-item selected">
+                <div class="cat-icon">🍜</div>
+                <span class="cat-name">餐饮</span>
+              </div>
+              <div class="cat-item">
+                <div class="cat-icon">🚌</div>
+                <span class="cat-name">交通</span>
+              </div>
+              <div class="cat-item">
+                <div class="cat-icon">🛒</div>
+                <span class="cat-name">购物</span>
+              </div>
+              <div class="cat-item">
+                <div class="cat-icon">🏠</div>
+                <span class="cat-name">居住</span>
+              </div>
+              <div class="cat-item">
+                <div class="cat-icon">🎮</div>
+                <span class="cat-name">娱乐</span>
+              </div>
+              <div class="cat-item">
+                <div class="cat-icon">🏥</div>
+                <span class="cat-name">医疗</span>
+              </div>
+              <div class="cat-item">
+                <div class="cat-icon">📚</div>
+                <span class="cat-name">学习</span>
+              </div>
+              <div class="cat-item">
+                <div class="cat-icon">✈️</div>
+                <span class="cat-name">旅行</span>
+              </div>
+              <div class="cat-item">
+                <div class="cat-icon">🎁</div>
+                <span class="cat-name">人情</span>
+              </div>
+              <div class="cat-item">
+                <div class="cat-icon">⚙️</div>
+                <span class="cat-name">其他</span>
+              </div>
+            </div>
+            <div class="toolbar-section">
+              <span class="pill" style="background: var(--bg-card)"
+                >📅 11月20日</span
+              >
+              <span class="pill" style="background: var(--bg-card)"
+                >📝 添加备注...</span
+              >
+              <span class="pill" style="background: var(--bg-card)"
+                >📷 票据</span
+              >
+            </div>
+            <div class="num-pad">
+              <div class="num-keys">
+                <div class="key">7</div>
+                <div class="key">8</div>
+                <div class="key">9</div>
+                <div class="key">4</div>
+                <div class="key">5</div>
+                <div class="key">6</div>
+                <div class="key">1</div>
+                <div class="key">2</div>
+                <div class="key">3</div>
+                <div class="key">.</div>
+                <div class="key">0</div>
+                <div class="key">⌫</div>
+              </div>
+              <div class="action-keys">
+                <div
+                  class="key"
+                  style="background: var(--key-bg-special); font-size: 14px"
+                >
+                  账户
+                </div>
+                <div class="key-done">完成</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCREEN 3: ACCOUNTS (Renamed from Assets) -->
+      <div style="position: relative">
+        <div class="screen-label">03. 多账户 (Accounts) - 已更名</div>
+        <div class="device-mockup">
+          <div class="notch"></div>
+          <div class="screen-content">
+            <div class="dashboard-header">
+              <div class="h1">多账户管理</div>
+              <div
+                style="
+                  font-size: 28px;
+                  font-weight: 700;
+                  margin-top: 4px;
+                  color: var(--text-main);
+                "
+              >
+                85,240.50
+              </div>
+            </div>
+            <div style="padding: 0 16px; margin-bottom: 16px">
+              <span class="text-sm">负债: 12,000.00</span>
+            </div>
+            <div class="asset-item">
+              <div class="asset-left">
+                <div class="asset-icon bg-cash">¥</div>
+                <div>
+                  <div class="text-md font-bold">现金钱包</div>
+                  <div class="text-sm">无需记名</div>
+                </div>
+              </div>
+              <div class="text-md font-bold">450.00</div>
+            </div>
+            <div class="asset-item">
+              <div class="asset-left">
+                <div class="asset-icon bg-wx">微</div>
+                <div>
+                  <div class="text-md font-bold">微信零钱</div>
+                  <div class="text-sm">日常开销</div>
+                </div>
+              </div>
+              <div class="text-md font-bold">2,300.50</div>
+            </div>
+            <div class="asset-item">
+              <div class="asset-left">
+                <div class="asset-icon bg-ali">支</div>
+                <div>
+                  <div class="text-md font-bold">支付宝</div>
+                  <div class="text-sm">理财通</div>
+                </div>
+              </div>
+              <div class="text-md font-bold">50,200.00</div>
+            </div>
+            <div class="asset-item">
+              <div class="asset-left">
+                <div class="asset-icon bg-bank">招</div>
+                <div>
+                  <div class="text-md font-bold">招商信用卡</div>
+                  <div class="text-sm">账单日 15号</div>
+                </div>
+              </div>
+              <div class="text-md font-bold" style="color: var(--danger)">
+                - 8,450.00
+              </div>
+            </div>
+
+            <!-- Add Account Button (Visual) -->
+            <div
+              class="asset-item"
+              style="
+                border: 2px dashed var(--border);
+                justify-content: center;
+                color: var(--primary);
+                background: transparent;
+                box-shadow: none;
+                font-weight: 600;
+                cursor: pointer;
+              "
+            >
+              + 添加新账户
+            </div>
+          </div>
+          <div class="tab-bar">
+            <div class="tab-item">
+              <svg class="icon" viewBox="0 0 24 24">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg
+              ><span>明细</span>
+            </div>
+            <div class="tab-item">
+              <svg class="icon" viewBox="0 0 24 24">
+                <path d="M21.21 15.89A10 10 0 1 1 8 2.83" /></svg
+              ><span>统计</span>
+            </div>
+            <div class="fab">+</div>
+            <div class="tab-item active">
+              <svg class="icon" viewBox="0 0 24 24">
+                <rect x="2" y="5" width="20" height="14" rx="2" />
+                <line x1="2" y1="10" x2="22" y2="10" /></svg
+              ><span>账户</span>
+            </div>
+            <div class="tab-item">
+              <svg class="icon" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="3" /></svg
+              ><span>设置</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCREEN 4: STATS (Unchanged) -->
+      <div style="position: relative">
+        <div class="screen-label">04. 统计 (Stats)</div>
+        <div class="device-mockup">
+          <div class="notch"></div>
+          <div class="screen-content">
+            <div class="dashboard-header" style="padding-bottom: 0">
+              <div
+                class="type-switch"
+                style="justify-content: flex-start; gap: 10px"
+              >
+                <div class="h1">11月报表</div>
+              </div>
+            </div>
+            <div
+              class="card"
+              style="
+                height: 200px;
+                display: flex;
+                align-items: flex-end;
+                justify-content: space-around;
+                padding-bottom: 20px;
+                margin-top: 20px;
+              "
+            >
+              <div
+                style="
+                  width: 30px;
+                  height: 40%;
+                  background: var(--chart-bar-bg);
+                  border-radius: 4px 4px 0 0;
+                "
+              ></div>
+              <div
+                style="
+                  width: 30px;
+                  height: 60%;
+                  background: var(--chart-bar-bg);
+                  border-radius: 4px 4px 0 0;
+                "
+              ></div>
+              <div
+                style="
+                  width: 30px;
+                  height: 30%;
+                  background: var(--chart-bar-bg);
+                  border-radius: 4px 4px 0 0;
+                "
+              ></div>
+              <div
+                style="
+                  width: 30px;
+                  height: 80%;
+                  background: var(--primary);
+                  border-radius: 4px 4px 0 0;
+                  position: relative;
+                "
+              ></div>
+              <div
+                style="
+                  width: 30px;
+                  height: 50%;
+                  background: var(--chart-bar-bg);
+                  border-radius: 4px 4px 0 0;
+                "
+              ></div>
+              <div
+                style="
+                  width: 30px;
+                  height: 45%;
+                  background: var(--chart-bar-bg);
+                  border-radius: 4px 4px 0 0;
+                "
+              ></div>
+            </div>
+            <div
+              style="
+                padding: 0 20px;
+                font-size: 14px;
+                font-weight: 600;
+                margin-bottom: 10px;
+                color: var(--text-sub);
+              "
+            >
+              支出排行榜
+            </div>
+            <div
+              class="transaction-item"
+              style="
+                margin: 0 16px 1px 16px;
+                border-radius: 0;
+                border-bottom: 1px solid var(--border);
+              "
+            >
+              <div class="t-icon">🏠</div>
+              <div class="t-info">
+                <div style="display: flex; justify-content: space-between">
+                  <span>房租房贷</span><span>35%</span>
+                </div>
+                <div
+                  style="
+                    width: 100%;
+                    height: 4px;
+                    background: var(--bg-app);
+                    margin-top: 6px;
+                    border-radius: 2px;
+                  "
+                >
+                  <div
+                    style="
+                      width: 35%;
+                      height: 100%;
+                      background: var(--text-main);
+                      border-radius: 2px;
+                    "
+                  ></div>
+                </div>
+              </div>
+              <div class="t-amount" style="margin-left: 12px">3500</div>
+            </div>
+            <div
+              class="transaction-item"
+              style="
+                margin: 0 16px 1px 16px;
+                border-radius: 0;
+                border-bottom: 1px solid var(--border);
+              "
+            >
+              <div class="t-icon">🍜</div>
+              <div class="t-info">
+                <div style="display: flex; justify-content: space-between">
+                  <span>餐饮美食</span><span>20%</span>
+                </div>
+                <div
+                  style="
+                    width: 100%;
+                    height: 4px;
+                    background: var(--bg-app);
+                    margin-top: 6px;
+                    border-radius: 2px;
+                  "
+                >
+                  <div
+                    style="
+                      width: 20%;
+                      height: 100%;
+                      background: var(--primary);
+                      border-radius: 2px;
+                    "
+                  ></div>
+                </div>
+              </div>
+              <div class="t-amount" style="margin-left: 12px">2000</div>
+            </div>
+            <div
+              class="transaction-item"
+              style="margin: 0 16px 1px 16px; border-radius: 0"
+            >
+              <div class="t-icon">🛒</div>
+              <div class="t-info">
+                <div style="display: flex; justify-content: space-between">
+                  <span>购物消费</span><span>15%</span>
+                </div>
+                <div
+                  style="
+                    width: 100%;
+                    height: 4px;
+                    background: var(--bg-app);
+                    margin-top: 6px;
+                    border-radius: 2px;
+                  "
+                >
+                  <div
+                    style="
+                      width: 15%;
+                      height: 100%;
+                      background: #f59e0b;
+                      border-radius: 2px;
+                    "
+                  ></div>
+                </div>
+              </div>
+              <div class="t-amount" style="margin-left: 12px">1500</div>
+            </div>
+          </div>
+          <div class="tab-bar">
+            <div class="tab-item">
+              <svg class="icon" viewBox="0 0 24 24">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg
+              ><span>明细</span>
+            </div>
+            <div class="tab-item active">
+              <svg class="icon" viewBox="0 0 24 24">
+                <path d="M21.21 15.89A10 10 0 1 1 8 2.83" /></svg
+              ><span>统计</span>
+            </div>
+            <div class="fab">+</div>
+            <div class="tab-item">
+              <svg class="icon" viewBox="0 0 24 24">
+                <rect x="2" y="5" width="20" height="14" rx="2" /></svg
+              ><span>账户</span>
+            </div>
+            <div class="tab-item">
+              <svg class="icon" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="3" /></svg
+              ><span>设置</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCREEN 5: PERSONAL CENTER (MINIMALIST) -->
+      <div style="position: relative">
+        <div class="screen-label">05. 个人中心 (Settings) - 极简版</div>
+        <div class="device-mockup">
+          <div class="notch"></div>
+          <div class="screen-content">
+            <div class="dashboard-header">
+              <div class="h1">个人中心</div>
+            </div>
+
+            <!-- Minimal Profile Layout -->
+            <div class="profile-minimal">
+              <div class="pm-avatar">M</div>
+              <div class="pm-name">Mono记账用户</div>
+              <div class="pm-info">Mono v2.2.0</div>
+            </div>
+
+            <!-- Settings Group 1: Appearance -->
+            <div class="setting-group-title" style="margin-left: 16px">
+              外观设置
+            </div>
+            <div class="setting-group">
+              <div class="setting-item">
+                <span>主题色</span>
+                <div class="color-options">
+                  <div
+                    class="color-circle active"
+                    style="background: var(--accent-green)"
+                    data-color="green"
+                  ></div>
+                  <div
+                    class="color-circle"
+                    style="background: var(--accent-blue)"
+                    data-color="blue"
+                  ></div>
+                  <div
+                    class="color-circle"
+                    style="background: var(--accent-purple)"
+                    data-color="purple"
+                  ></div>
+                  <div
+                    class="color-circle"
+                    style="background: var(--accent-orange)"
+                    data-color="orange"
+                  ></div>
+                </div>
+              </div>
+              <div class="setting-item" id="settings-theme-toggle">
+                <span>深色模式</span>
+                <div style="pointer-events: none">
+                  <!-- Fake Switch UI -->
+                  <div
+                    style="
+                      width: 44px;
+                      height: 24px;
+                      background: var(--pill-bg);
+                      border-radius: 12px;
+                      position: relative;
+                      transition: background 0.3s;
+                    "
+                  >
+                    <div
+                      class="switch-knob"
+                      style="
+                        width: 20px;
+                        height: 20px;
+                        background: white;
+                        border-radius: 10px;
+                        position: absolute;
+                        top: 2px;
+                        left: 2px;
+                        transition: left 0.3s;
+                        box-shadow: var(--shadow);
+                      "
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Settings Group 2: General -->
+            <div class="setting-group-title" style="margin-left: 16px">
+              通用设置
+            </div>
+            <div class="setting-group">
+              <div class="setting-item">
+                <span>多账本管理</span
+                ><svg
+                  class="icon icon-sm"
+                  style="color: var(--text-sub)"
+                  viewBox="0 0 24 24"
+                >
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </div>
+              <div class="setting-item">
+                <span>数据安全与备份</span
+                ><svg
+                  class="icon icon-sm"
+                  style="color: var(--text-sub)"
+                  viewBox="0 0 24 24"
+                >
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </div>
+              <div class="setting-item">
+                <span>分类管理</span
+                ><svg
+                  class="icon icon-sm"
+                  style="color: var(--text-sub)"
+                  viewBox="0 0 24 24"
+                >
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </div>
+            </div>
+          </div>
+          <!-- Tab Bar (Settings Active) -->
+          <div class="tab-bar">
+            <div class="tab-item">
+              <svg class="icon" viewBox="0 0 24 24">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg
+              ><span>明细</span>
+            </div>
+            <div class="tab-item">
+              <svg class="icon" viewBox="0 0 24 24">
+                <path d="M21.21 15.89A10 10 0 1 1 8 2.83" /></svg
+              ><span>统计</span>
+            </div>
+            <div class="fab">+</div>
+            <div class="tab-item">
+              <svg class="icon" viewBox="0 0 24 24">
+                <rect x="2" y="5" width="20" height="14" rx="2" /></svg
+              ><span>账户</span>
+            </div>
+            <div class="tab-item active">
+              <svg class="icon" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="3" />
+                <path
+                  d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
+                /></svg
+              ><span>设置</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // 1. Keypad Interaction
+      document.querySelectorAll(".key").forEach((key) => {
+        key.addEventListener("click", () => {
+          const display = document.querySelector(".amount-display");
+          const text = key.innerText;
+          if (text === "⌫" || text === "账户") return;
+          if (display.innerText === "¥ 38.00") display.innerText = "¥ ";
+          display.innerText += text;
+        });
+      });
+
+      // 2. Theme Toggle Logic
+      const htmlTag = document.documentElement;
+      const toggleThemeFn = () => {
+        const currentTheme = htmlTag.getAttribute("data-theme");
+        const newTheme = currentTheme === "light" ? "dark" : "light";
+        htmlTag.setAttribute("data-theme", newTheme);
+
+        // Update fake switch UI in settings
+        const knob = document.querySelector(".switch-knob");
+        const switchBg = knob.parentElement;
+        if (newTheme === "dark") {
+          knob.style.left = "22px";
+          switchBg.style.background = "var(--primary)";
+        } else {
+          knob.style.left = "2px";
+          switchBg.style.background = "var(--pill-bg)";
+        }
+      };
+      document
+        .getElementById("theme-toggle")
+        .addEventListener("click", toggleThemeFn);
+      document
+        .getElementById("settings-theme-toggle")
+        .addEventListener("click", toggleThemeFn);
+
+      // 3. Accent Color Switcher Logic
+      const colorCircles = document.querySelectorAll(".color-circle");
+      colorCircles.forEach((circle) => {
+        circle.addEventListener("click", (e) => {
+          colorCircles.forEach((c) => c.classList.remove("active"));
+          e.target.classList.add("active");
+          const colorName = e.target.getAttribute("data-color");
+          const newColorVar = `var(--accent-${colorName})`;
+          document.documentElement.style.setProperty("--primary", newColorVar);
+
+          const currentTheme = htmlTag.getAttribute("data-theme");
+          if (currentTheme === "dark") {
+            document.querySelector(
+              ".switch-knob"
+            ).parentElement.style.background = newColorVar;
+          }
+        });
+      });
+
+      // 4. NEW: Home Tab Switching Logic
+      const homeTabBtns = document.querySelectorAll(".home-tab-btn");
+      const homeTabViews = document.querySelectorAll(".home-tab-view");
+
+      homeTabBtns.forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          // Deactivate all buttons and views
+          homeTabBtns.forEach((b) => b.classList.remove("active"));
+          homeTabViews.forEach((v) => v.classList.remove("active"));
+
+          // Activate clicked button
+          const targetId = e.target.getAttribute("data-target");
+          e.target.classList.add("active");
+
+          // Activate corresponding view
+          document.getElementById(targetId).classList.add("active");
+        });
+      });
+
+      console.log("Mono App UI V4 Loaded: Home Tabs & Minimal Profile.");
+
+      // ... (之前的代码)
+
+        // 5. NEW: Calendar Day Click Interaction
+        const dayDetailWrapper = document.getElementById('day-detail-wrapper');
+        const calGrid = document.getElementById('calendar-grid');
+        const calDays = calGrid.querySelectorAll('.cal-day:not(.not-current)');
+
+        // 模拟数据源：日期 -> 交易列表
+        const mockTransactions = {
+            '12': [
+                { icon: '🛒', name: '超市采购', pay: '微信', amount: '- 120.00', type: 'exp' }
+            ],
+            '13': [
+                { icon: '💰', name: '退款到账', pay: '支付宝', amount: '+ 500.00', type: 'inc' }
+            ],
+            '20': [ // Today
+                { icon: '🍜', name: '午餐', pay: '微信零钱', amount: '- 58.00', type: 'exp' },
+                { icon: '☕', name: '咖啡', pay: '星巴克卡', amount: '- 34.40', type: 'exp' }
+            ],
+            '22': [
+                { icon: '💵', name: '奖金发放', pay: '招商银行', amount: '+ 800.00', type: 'inc' }
+            ],
+            '18': [
+                 { icon: '🛒', name: '便利店', pay: '现金', amount: '- 28.90', type: 'exp' },
+                 { icon: '🎮', name: 'Steam游戏', pay: '信用卡', amount: '- 150.00', type: 'exp' }
+            ]
+        };
+
+        calDays.forEach(day => {
+            day.addEventListener('click', function() {
+                // 1. 移除其他日期的选中状态
+                calDays.forEach(d => d.classList.remove('selected'));
+                
+                // 2. 选中当前日期
+                this.classList.add('selected');
+
+                // 3. 获取日期数据
+                const dateNum = this.getAttribute('data-day');
+                const data = mockTransactions[dateNum];
+
+                // 4. 生成并渲染明细卡片
+                renderDayDetails(dateNum, data);
+            });
+        });
+
+        function renderDayDetails(date, list) {
+            // 如果没有数据，可以选择隐藏容器或者显示无数据提示
+            if (!list || list.length === 0) {
+                // 简单处理：如果没有数据，显示一个空的提示或者隐藏
+                dayDetailWrapper.innerHTML = `
+                    <div class="card" style="text-align:center; padding:24px; color:var(--text-sub);">
+                        <div style="font-size:12px;">11月${date}日 · 无记账记录</div>
+                    </div>
+                `;
+                dayDetailWrapper.classList.add('show');
+                return;
+            }
+
+            // 计算当日统计
+            let totalExp = 0;
+            let totalInc = 0;
+            list.forEach(item => {
+                const val = parseFloat(item.amount.replace(/[^0-9.]/g, ''));
+                if (item.type === 'exp') totalExp += val;
+                else totalInc += val;
+            });
+
+            // 生成列表 HTML
+            const listHtml = list.map(item => `
+                <div class="transaction-item">
+                    <div class="t-icon">${item.icon}</div>
+                    <div class="t-info">
+                        <div style="font-weight:500;">${item.name}</div>
+                        <div style="margin-top:4px;"><span class="pill">${item.pay}</span></div>
+                    </div>
+                    <div class="t-amount ${item.type === 'inc' ? 'money-inc' : ''}">${item.amount}</div>
+                </div>
+            `).join('');
+
+            // 组装完整卡片
+            const headerHtml = `
+                <div class="day-card-header">
+                    <div style="font-weight:600; color:var(--text-main);">11月${date}日</div>
+                    <div style="font-size:12px; color:var(--text-sub);">
+                        ${totalInc > 0 ? `<span class="money-inc">收 +${totalInc.toFixed(2)}</span> &nbsp;` : ''}
+                        ${totalExp > 0 ? `<span>支 -${totalExp.toFixed(2)}</span>` : ''}
+                    </div>
+                </div>
+            `;
+
+            dayDetailWrapper.innerHTML = `
+                <div style="box-shadow:var(--shadow); border-radius:16px;">
+                    ${headerHtml}
+                    <div class="day-list-wrapper" style="background:var(--bg-card);">
+                        ${listHtml}
+                    </div>
+                </div>
+            `;
+            
+            dayDetailWrapper.classList.add('show');
+        }
+
+        console.log("Mono App: Calendar Interaction Loaded.");
+
+      // 6. NEW: Month Picker Functionality
+      // 创建月份选择器模态框
+      function createMonthPickerModal() {
+        const modal = document.createElement('div');
+        modal.id = 'month-picker-modal';
+        modal.style.cssText = `
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-color: rgba(0, 0, 0, 0.5);
+          display: flex;
+          justify-content: center;
+          align-items: flex-end;
+          z-index: 1000;
+          opacity: 0;
+          visibility: hidden;
+          transition: opacity 0.3s, visibility 0.3s;
+        `;
+
+        const content = document.createElement('div');
+        content.style.cssText = `
+          background-color: var(--bg-modal);
+          width: 100%;
+          max-width: var(--screen-w);
+          border-top-left-radius: 20px;
+          border-top-right-radius: 20px;
+          padding: 24px;
+          transform: translateY(100%);
+          transition: transform 0.3s;
+        `;
+
+        // 模态框头部
+        const header = document.createElement('div');
+        header.style.cssText = `
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 24px;
+        `;
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.textContent = '取消';
+        cancelBtn.style.cssText = `
+          background: none;
+          border: none;
+          color: var(--text-sub);
+          font-size: 16px;
+          padding: 8px 16px;
+        `;
+        cancelBtn.addEventListener('click', closeMonthPicker);
+
+        const title = document.createElement('h3');
+        title.textContent = '选择月份';
+        title.style.cssText = `
+          margin: 0;
+          font-size: 18px;
+          font-weight: 600;
+          color: var(--text-main);
+        `;
+
+        const confirmBtn = document.createElement('button');
+        confirmBtn.textContent = '确定';
+        confirmBtn.style.cssText = `
+          background: none;
+          border: none;
+          color: var(--primary);
+          font-size: 16px;
+          font-weight: 600;
+          padding: 8px 16px;
+        `;
+        confirmBtn.addEventListener('click', () => {
+          if (selectedMonth && selectedYear) {
+            updateSelectedMonth(selectedYear, selectedMonth);
+            closeMonthPicker();
+          }
+        });
+
+        header.appendChild(cancelBtn);
+        header.appendChild(title);
+        header.appendChild(confirmBtn);
+
+        // 年份选择器
+        const yearSelector = document.createElement('div');
+        yearSelector.style.cssText = `
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 24px;
+        `;
+
+        const prevYearBtn = document.createElement('button');
+        prevYearBtn.innerHTML = '<svg class="icon" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>';
+        prevYearBtn.style.cssText = `
+          background: none;
+          border: none;
+          color: var(--text-main);
+          padding: 8px;
+        `;
+
+        const yearDisplay = document.createElement('span');
+        yearDisplay.id = 'year-display';
+        yearDisplay.textContent = '2025年';
+        yearDisplay.style.cssText = `
+          font-size: 18px;
+          font-weight: 600;
+          color: var(--text-main);
+        `;
+
+        const nextYearBtn = document.createElement('button');
+        nextYearBtn.innerHTML = '<svg class="icon" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>';
+        nextYearBtn.style.cssText = `
+          background: none;
+          border: none;
+          color: var(--text-main);
+          padding: 8px;
+        `;
+
+        yearSelector.appendChild(prevYearBtn);
+        yearSelector.appendChild(yearDisplay);
+        yearSelector.appendChild(nextYearBtn);
+
+        // 月份网格
+        const monthGrid = document.createElement('div');
+        monthGrid.id = 'month-grid';
+        monthGrid.style.cssText = `
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 12px;
+        `;
+
+        const months = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+        months.forEach((month, index) => {
+          const monthBtn = document.createElement('button');
+          monthBtn.textContent = month;
+          monthBtn.dataset.month = (index + 1).toString();
+          monthBtn.style.cssText = `
+            background-color: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            font-size: 16px;
+            color: var(--text-main);
+            transition: all 0.2s;
+          `;
+          
+          // 默认选中11月
+          if (index === 10) {
+            monthBtn.style.backgroundColor = 'var(--primary)';
+            monthBtn.style.color = 'var(--text-on-primary)';
+            monthBtn.style.borderColor = 'var(--primary)';
+          }
+          
+          monthBtn.addEventListener('click', function() {
+            // 移除其他月份的选中状态
+            monthGrid.querySelectorAll('button').forEach(btn => {
+              btn.style.backgroundColor = 'var(--bg-card)';
+              btn.style.color = 'var(--text-main)';
+              btn.style.borderColor = 'var(--border)';
+            });
+            
+            // 选中当前月份
+            this.style.backgroundColor = 'var(--primary)';
+            this.style.color = 'var(--text-on-primary)';
+            this.style.borderColor = 'var(--primary)';
+            
+            // 更新选中的月份
+            selectedMonth = parseInt(this.dataset.month);
+          });
+          
+          monthGrid.appendChild(monthBtn);
+        });
+
+        content.appendChild(header);
+        content.appendChild(yearSelector);
+        content.appendChild(monthGrid);
+        modal.appendChild(content);
+        document.body.appendChild(modal);
+
+        // 年份切换事件
+        let currentDisplayYear = 2025;
+        selectedYear = 2025;
+        selectedMonth = 11;
+        
+        prevYearBtn.addEventListener('click', () => {
+          currentDisplayYear--;
+          yearDisplay.textContent = currentDisplayYear + '年';
+          selectedYear = currentDisplayYear;
+        });
+        
+        nextYearBtn.addEventListener('click', () => {
+          currentDisplayYear++;
+          yearDisplay.textContent = currentDisplayYear + '年';
+          selectedYear = currentDisplayYear;
+        });
+        
+        // 点击模态框外部关闭
+        modal.addEventListener('click', function(e) {
+          if (e.target === this) {
+            closeMonthPicker();
+          }
+        });
+      }
+
+      let selectedYear, selectedMonth;
+      
+      // 打开月份选择器
+      function openMonthPicker() {
+        // 如果模态框不存在，创建它
+        if (!document.getElementById('month-picker-modal')) {
+          createMonthPickerModal();
+        }
+        
+        const modal = document.getElementById('month-picker-modal');
+        const content = modal.querySelector('div');
+        
+        // 显示模态框
+        modal.style.opacity = '1';
+        modal.style.visibility = 'visible';
+        content.style.transform = 'translateY(0)';
+      }
+
+      // 关闭月份选择器
+      function closeMonthPicker() {
+        const modal = document.getElementById('month-picker-modal');
+        const content = modal.querySelector('div');
+        
+        // 隐藏模态框
+        modal.style.opacity = '0';
+        modal.style.visibility = 'hidden';
+        content.style.transform = 'translateY(100%)';
+      }
+
+      // 更新选中的月份
+      function updateSelectedMonth(year, month) {
+        // 更新日期选择器显示的月份
+        const dateSelectorText = document.querySelector('.date-selector .h2');
+        dateSelectorText.textContent = `${year}年 ${month}月`;
+        
+        // 这里可以添加更新日历内容的逻辑
+        console.log(`已选择月份: ${year}年${month}月`);
+        
+        // TODO: 根据选择的月份更新日历网格内容
+      }
+
+      console.log("Mono App: Month Picker Functionality Loaded.");
+    </script>
+  </body>
+</html>
