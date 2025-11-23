@@ -4,7 +4,7 @@ import { Theme as NavigationTheme, ThemeProvider } from '@react-navigation/nativ
 import { Stack } from 'expo-router';
 import { vars } from 'nativewind'; // NativeWind 提供的变量注入工具
 import React, { useEffect } from 'react';
-import { View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 export const RootNavigator = () => {
   const { theme } = useTheme();
@@ -65,7 +65,7 @@ export const RootNavigator = () => {
 
   return (
     // style={nativeWindVars} 将变量注入到根节点，所有子组件的 Tailwind 类都能读取到
-    <View style={[nativeWindVars, { flex: 1 }]} className="bg-gray-200 dark:bg-black">
+    <GestureHandlerRootView  style={[nativeWindVars, { flex: 1 }]} className="bg-gray-200 dark:bg-black">
       <ThemeProvider value={navTheme}>
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -75,6 +75,6 @@ export const RootNavigator = () => {
           />
         </Stack>
       </ThemeProvider>
-    </View>
+    </GestureHandlerRootView>
   );
 };

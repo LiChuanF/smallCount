@@ -14,6 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 // 组件导入
 import TransactionItem from "@/components/biz/TransactionItem";
 import BalanceWidget from "@/components/widgets/BalanceWidget";
+import SwipeableRow from "@/components/widgets/SwipeableRow";
 import { useTheme } from "@/context/ThemeContext";
 import { useShadowStyle } from "@/hooks/use-shadow";
 import { useState } from "react";
@@ -140,16 +141,35 @@ const DetailList = () => {
   // 渲染每个交易项
   const renderTransactionItem = ({ item }: { item: any }) => (
     <View className="mx-4">
-      <TransactionItem
-        key={item.id}
-        title={item.description}
-        amount={item.amount}
-        type={item.type}
-        date={item.date}
-        paymentMethod={item.paymentMethod}
-        tags={item.tags}
-        icon={item.icon}
-      />
+      <SwipeableRow
+        className="mb-2 rounded-lg overflow-hidden"
+        actions={[
+          {
+            label: '编辑',
+            onPress: () => console.log('编辑交易:', item.id),
+            className: 'bg-blue-500',
+            textClassName: 'text-white'
+          },
+          {
+            label: '删除',
+            onPress: () => console.log('删除交易:', item.id),
+            className: 'bg-red-500',
+            textClassName: 'text-white'
+          }
+        ]}
+        threshold={80}
+      >
+        <TransactionItem
+          key={item.id}
+          title={item.description}
+          amount={item.amount}
+          type={item.type}
+          date={item.date}
+          paymentMethod={item.paymentMethod}
+          tags={item.tags}
+          icon={item.icon}
+        />
+      </SwipeableRow>
     </View>
   );
 

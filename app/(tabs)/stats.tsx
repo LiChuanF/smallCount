@@ -1,5 +1,5 @@
 // import DashboardHeader from "@/components/ui/DashboardHeader";
-import DashboardHeader from "@/components/ui/DashboardHeader";
+import SwipeableRow from "@/components/widgets/SwipeableRow";
 import React, { useState } from "react";
 import { Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -19,15 +19,25 @@ export default function StatsPage() {
   };
   return (
     <SafeAreaView className="flex-1">
-      <DashboardHeader
-              selectedDate={new Date()}
-              onDatePress={showDatepicker}
-              activeTab={activeTab}
-              onTabChange={handleTabChange}
-            />
       <Text className="text-2xl font-bold text-blue-900">统计页面</Text>
-      {activeTab === "calendar" ? <Text>日历视图</Text> : <Text>详情视图</Text>}
-      <Text>{activeTab === "calendar" ? "日历视图" : "详情视图"}</Text>
+      <SwipeableRow
+        actions={[
+          {
+            label: "删除",
+            onPress: () => console.log("删除"),
+            className: "bg-red-500",
+            textClassName: "text-white",
+          },
+          {
+            label: "编辑",
+            onPress: () => console.log("编辑"),
+            className: "bg-yellow-500", 
+            textClassName: "text-white",
+          },
+        ]}
+      >
+        <Text className="text-2xl font-bold text-blue-900">可滑动行</Text>
+      </SwipeableRow>
     </SafeAreaView>
   );
 }

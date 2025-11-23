@@ -109,4 +109,35 @@ export class TransactionRepository extends BaseRepository<Transaction> {
       orderBy: [desc(transactions.transactionDate)],
     });
   }
+
+  // 更新交易
+  async update(id: string, data: Partial<Omit<NewTransaction, 'id' | 'createdAt' | 'updatedAt'>>) {
+    const [updated] = await this.db
+      .update(transactions)
+      .set({
+        ...data,
+        updatedAt: new Date(),
+      })
+      .where(eq(transactions.id, id))
+      .returning();
+    
+    return updated;
+  }
+
+  // 删除交易
+  async delete(id: string) {
+    const [deleted] = await this.db
+      .delete(transactions)
+      .where(eq(transactions.id, id))
+      .returning();
+    
+    return deleted;
+  }
+
+  // 根据ID查找交易
+  async findById(id: string) {
+    return await this.db.query.transactions.findFirst({
+      where: eq(transactions.id, id),
+    });
+  }
 }

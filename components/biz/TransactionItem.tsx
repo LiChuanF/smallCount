@@ -27,7 +27,7 @@ export default function TransactionItem({
   icon = "💰"
 }: TransactionItemProps) {
   return (
-    <View className="flex-row justify-between items-center py-6 px-5 bg-white rounded-xl mb-2 bg-gray-200 dark:bg-charcoal-800">
+    <View className="flex-row justify-between items-center py-6 px-5 bg-white bg-gray-200 dark:bg-charcoal-800">
       <View className="flex-1 flex-row items-center">
         <View className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mr-3 dark:bg-gray-800">
           <Text className="text-lg">{icon}</Text>
