@@ -1,5 +1,3 @@
-// 封装 AsyncStorage 替代 MMKV
-// 解决 NitroModules 兼容性问题
 
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
