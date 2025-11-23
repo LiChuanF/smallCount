@@ -1,6 +1,7 @@
 import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator'; // 1. 静态导入 Hook
 import { useEffect, useState } from 'react';
-import { db } from '../db/db'; // 1. 静态导入 db 实例
+import { Platform } from 'react-native';
+import { db, initDatabase } from '../db/db'; // 1. 静态导入 db 实例
 import migrations from '../db/migrations/migrations'; // 1. 静态导入迁移文件
 import { SeedService } from '../db/services/SeedService';
 
@@ -13,12 +14,14 @@ export const useSystemInit = () => {
   const [isReady, setIsReady] = useState(false);
   const [initError, setInitError] = useState<Error | null>(null);
 
-  // 4. 监听迁移状态，成功后再执行种子初始化
   useEffect(() => {
-    // 如果迁移还没成功，什么都不做
+    if(Platform.OS != 'web') return;
+    initDatabase()
+  })
+
+  useEffect(() => {
     if (!migrationSuccess) return;
 
-    // 如果迁移报错了，也不执行初始化
     if (migrationError) return;
 
     const runSeeding = async () => {
