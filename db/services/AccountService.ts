@@ -1,4 +1,5 @@
 // sql/services/AccountService.ts
+import { generateRandomColor } from '@/theme/colors';
 import { AccountRepository } from '../repositories/AccountRepository';
 
 const accountRepo = new AccountRepository();
@@ -18,6 +19,7 @@ export const AccountService = {
             // 其他字段给默认值或 undefined
             isDefault: false,
             notes,
+            color: generateRandomColor(),
         });
     },
 

@@ -193,7 +193,7 @@ export default function HomeScreen() {
         return;
       }
       getData();
-    }, [db.isInitialized])
+    }, [db.isInitialized,activeTab])
   );
 
   // 显示月份选择器

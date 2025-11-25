@@ -640,6 +640,51 @@ export const addAlphaToColor = (color: string, alpha: number): string => {
 };
 
 /**
+ * 生成随机颜色
+ * @param format 颜色格式，支持 'hex'（默认）、'rgb'、'rgba'
+ * @returns 对应格式的随机颜色字符串
+ */
+export function generateRandomColor(
+  format: 'hex' | 'rgb' | 'rgba' = 'hex'
+): string {
+  // 生成 0-255 之间的随机整数
+  const getRandomByte = (): number => Math.floor(Math.random() * 256);
+
+  // 生成 0-1 之间的随机透明度（保留2位小数）
+  const getRandomAlpha = (): number => Number((Math.random()).toFixed(2));
+
+  // 生成十六进制字符（0-9, a-f）
+  const getHexChar = (byte: number): string => byte.toString(16).padStart(2, '0');
+
+  // 根据格式生成对应颜色
+  switch (format) {
+    case 'hex':
+      const r = getHexChar(getRandomByte());
+      const g = getHexChar(getRandomByte());
+      const b = getHexChar(getRandomByte());
+      return `#${r}${g}${b}`;
+
+    case 'rgb':
+      const rgbR = getRandomByte();
+      const rgbG = getRandomByte();
+      const rgbB = getRandomByte();
+      return `rgb(${rgbR}, ${rgbG}, ${rgbB})`;
+
+    case 'rgba':
+      const rgbaR = getRandomByte();
+      const rgbaG = getRandomByte();
+      const rgbaB = getRandomByte();
+      const alpha = getRandomAlpha();
+      return `rgba(${rgbaR}, ${rgbaG}, ${rgbaB}, ${alpha})`;
+
+    default:
+      // 处理无效格式（TypeScript 已限制输入，此处为安全兜底）
+      throw new Error(`不支持的颜色格式: ${format}`);
+  }
+}
+
+
+/**
  * 便捷方法：为颜色添加透明度并返回RGBA字符串（简化版）
  * @param color - 颜色值
  * @param alpha - 透明度值，范围0-1
