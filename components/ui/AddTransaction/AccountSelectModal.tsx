@@ -47,25 +47,6 @@ const AccountSelectModal: React.FC<AccountSelectModalProps> = ({
     }
   };
 
-  // 获取账户类型的中文名称
-  const getAccountTypeName = (type: string) => {
-    switch (type) {
-      case 'cash':
-        return '现金';
-      case 'bank':
-        return '银行账户';
-      case 'credit_card':
-        return '信用卡';
-      case 'digital_wallet':
-        return '数字钱包';
-      case 'investment':
-        return '投资账户';
-      case 'loan':
-        return '贷款账户';
-      default:
-        return '其他账户';
-    }
-  };
 
   // 渲染单个列表项
   const renderItem = ({ item }: { item: Account }) => {
@@ -166,7 +147,7 @@ const AccountSelectModal: React.FC<AccountSelectModalProps> = ({
           ) : (
             <View className="flex-1 justify-center items-center">
               <Ionicons name="wallet-outline" size={48} color={theme.colors.border} />
-              <Text className="text-lg text-muted dark:text-muted-dark mt-4">
+              <Text className="text-lg text-text mt-4">
                 暂无账户
               </Text>
               <Text className="text-sm text-gray-500 dark:text-gray-400 mt-2">

@@ -1,9 +1,8 @@
 import SwipeableRow, { SwipeAction } from "@/components/widgets/SwipeableRow";
 import { useTheme } from "@/context/ThemeContext";
-import { Account } from "@/db/repositories/AccountRepository";
-import { AccountService } from "@/db/services/AccountService";
-import { defaultStorageManager } from "@/utils/storage";
+import useDataStore from "@/storage/store/useDataStore";
 import { getFirstCharToUpper } from "@/utils/utils";
+import Big from "big.js";
 import React, { useEffect, useState } from "react";
 import {
   ScrollView,
@@ -16,10 +15,27 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function AccountsScreen() {
   const {theme} = useTheme();
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [totalBalance, setTotalBalance] = useState(0);
   const [debtBalance, setDebtBalance] = useState(0);
+  const acList = useDataStore((state) => state.accounts);
+
+  useEffect(() => {
+    // 计算总余额 - 使用bigjs避免浮点数精度问题
+    const total = acList.reduce((sum, acc) => {
+      const balance = new Big(acc.balance || 0);
+      return sum.plus(balance);
+    }, new Big(0));
+    setTotalBalance(total.toNumber());
+
+    // 计算负债总额 - 使用bigjs避免浮点数精度问题
+    const debt = acList
+      .filter((account) => account.balance !== null && account.balance < 0)
+      .reduce((sum, acc) => {
+        const balance = new Big(acc.balance || 0);
+        return sum.plus(balance);
+      }, new Big(0));
+    setDebtBalance(Math.abs(debt.toNumber()));
+  }, [acList]);
 
   // 格式化金额辅助函数
   const formatMoney = (amount: number) => {
@@ -40,34 +56,6 @@ export default function AccountsScreen() {
     console.log("Edit item:", id);
   };
 
-  // 获取账户列表
-  const getAccountList = async () => {
-    try {
-      // 这里需要传入当前用户的ID，暂时使用默认用户ID
-      const user = await defaultStorageManager.get<Account>("user");
-      // 这里需要传入当前用户的ID，暂时使用默认用户ID
-      if (!user) {
-        console.error("用户信息不存在");
-        return;
-      }
-      const userAssets = await AccountService.getUserAssets(user.id);
-      setAccounts(userAssets.accounts || []);
-      setTotalBalance(userAssets.totalBalance || 0);
-
-      // 计算负债总额
-      const debt = userAssets.accounts
-        .filter((account) => account.balance !== null && account.balance < 0)
-        .reduce((sum, acc) => sum + (acc.balance || 0), 0);
-      setDebtBalance(Math.abs(debt));
-    } catch (error) {
-      console.error("获取账户列表失败:", error);
-    }
-  };
-
-  // 组件挂载时获取数据
-  useEffect(() => {
-    getAccountList();
-  }, []);
 
   return (
     <SafeAreaView className="flex-1 bg-background">
@@ -95,7 +83,7 @@ export default function AccountsScreen() {
 
         {/* --- 账户列表 (List) --- */}
         <View className="flex-col gap-3">
-          {accounts.map((account) => {
+          {acList.map((account) => {
             // 定义滑动菜单的动作
             const rightActions: SwipeAction[] = [
               {

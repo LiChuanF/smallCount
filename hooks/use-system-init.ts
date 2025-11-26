@@ -1,3 +1,4 @@
+import useDataStore from '@/storage/store/useDataStore';
 import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator'; // 1. 静态导入 Hook
 import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
@@ -30,6 +31,7 @@ export const useSystemInit = () => {
         
         const result = await SeedService.initDefaultData();
         console.log('种子数据初始化完成', result);
+        await useDataStore.getState().initializeData();
 
         console.log('✅ 系统初始化完全就绪');
         setIsReady(true);

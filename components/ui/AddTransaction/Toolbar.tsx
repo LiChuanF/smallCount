@@ -1,9 +1,7 @@
 // components/AddTransaction/Toolbar.tsx
 import DatePickerModal from '@/components/widgets/DatePickerModal';
-import { PAYMENT_METHODS } from '@/constants/data';
-import { PaymentMethod } from '@/constants/type';
-import { NewPaymentMethod } from '@/db/repositories/PaymentMethodRepository';
-import { PaymentMethodService } from '@/db/services/PaymentMethodService';
+import { NewPaymentMethod, PaymentMethod } from '@/db/repositories/PaymentMethodRepository';
+import useDataStore from '@/storage/store/useDataStore';
 import React, { useEffect, useState } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 import PaymentMethodModal from './PaymentMethodModal';
@@ -18,7 +16,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({ dateStr, onDateChange, onPayme
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showPaymentMethodModal, setShowPaymentMethodModal] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | NewPaymentMethod | null>(null);
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const { paymentMethods } = useDataStore();
+
   
   const [selectedDate, setSelectedDate] = useState<string>(() => {
     // 默认日期为当日日期，格式为YYYY-MM-dd
@@ -26,38 +25,17 @@ export const Toolbar: React.FC<ToolbarProps> = ({ dateStr, onDateChange, onPayme
     return today.toISOString().split('T')[0];
   });
 
-  // 获取支付方式列表
-  const getPaymentMethods = async () => {
-    try {
-      const methods = await PaymentMethodService.getAllPaymentMethods();
-      console.log('获取到的支付方式:', methods.length);
-      setPaymentMethods(methods as PaymentMethod[]);
-      
-      // 设置默认支付方式
-      if (methods.length > 0) {
-        const defaultMethod = methods.find(method => method.isDefault) || methods[0];
+  useEffect(() => {
+    if (paymentMethods.length > 0) {
+      const defaultMethod = paymentMethods.find(method => method.isDefault) || paymentMethods[0];
         setSelectedPaymentMethod(defaultMethod);
         if (onPaymentMethodChange) {
           onPaymentMethodChange(defaultMethod as PaymentMethod);
         }
-      }
-    } catch (error) {
-      console.error('获取支付方式失败:', error);
-      // 如果数据库获取失败，使用默认的静态数据
-      setPaymentMethods(PAYMENT_METHODS);
-      if (PAYMENT_METHODS.length > 0) {
-        const defaultMethod = PAYMENT_METHODS.find(method => method?.isDefault) || PAYMENT_METHODS[0];
-        setSelectedPaymentMethod(defaultMethod);
-        if (onPaymentMethodChange) {
-          onPaymentMethodChange(defaultMethod);
-        }
-      }
     }
-  };
-
-  useEffect(() => {
-    getPaymentMethods();
   }, []);
+
+
 
   // 格式化日期显示为中文格式（如：11月20日）
   const formatDateForDisplay = (dateStr: string) => {
@@ -132,6 +110,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ dateStr, onDateChange, onPayme
         onClose={handleDateClose}
         onConfirm={handleDateConfirm}
         currentDate={selectedDate}
+        maxDate={new Date().toISOString().split('T')[0]}
       />
 
       {/* 支付方式选择弹窗 */}

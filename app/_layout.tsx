@@ -1,5 +1,5 @@
+import { RootNavigator } from "@/components/navigation/RootNavigator";
 import { ThemeProvider } from "@/context/ThemeContext";
-import { RootNavigator } from "@/navigation/RootNavigator";
 import { StatusBar } from "expo-status-bar";
 import Toast from 'react-native-toast-message';
 

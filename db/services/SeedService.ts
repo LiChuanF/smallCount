@@ -1,7 +1,6 @@
 import { DEFAULT_ACCOUNT_NAME, DEFAULT_EMAIL, DEFAULT_TAGS, DEFAULT_USERNAME, PAYMENT_METHODS } from '@/constants/data';
 import { defaultStorageManager } from '@/utils/storage';
 import { AccountRepository } from '../repositories/AccountRepository';
-import { TransactionRepository } from '../repositories/TransactionRepository';
 import { UserRepository } from '../repositories/UserRepository';
 import { AccountService } from './AccountService';
 import { PaymentMethodService } from './PaymentMethodService';
@@ -40,40 +39,6 @@ async function ensureDefaultAccount(userId: string) {
   
   return { count: list.length, defaultAccountId: def.id, accountInfo: def };
 }
-
-const mockTransactionsDataToDb = async (account: {
-    count: number;
-    defaultAccountId: string;
-}) => {
-     // 创建一些交易数据 - 如果没有交易数据 模拟用户进行几笔交易
-    const tradeRepo = new TransactionRepository();
-    const existingTrades = await tradeRepo.findByMonth(account.defaultAccountId, new Date().getFullYear(),new Date().getMonth() + 1, {
-      page: 1,
-      pageSize: 10,
-    });
-    console.log(`交易初始化完成: ${existingTrades.items.length} 笔交易`);
-    if (existingTrades.items.length === 0) {
-      // 模拟用户进行几笔交易
-      await tradeRepo.createTransactionWithBalanceUpdate({
-        accountId: account.defaultAccountId,
-        type: 'expense',
-        amount: 1000,
-        description: '测试 支出',
-        transactionDate: new Date(),
-        paymentMethodId: '1',
-        tagId: '1',
-      });
-      await tradeRepo.createTransactionWithBalanceUpdate({
-        accountId: account.defaultAccountId,
-        type: 'income',
-        amount: 5000,
-        description: '测试 收入',
-        transactionDate: new Date(),
-        paymentMethodId: '1',
-        tagId: '1',
-      });
-    }
-};
 
 const addDefaultTagsDataToDb = async () => {
      // 创建一些标签数据 - 如果没有标签数据 模拟用户进行几笔标签
@@ -126,6 +91,7 @@ export const SeedService = {
     const user = await ensureDefaultUser();
     console.log(`用户初始化完成: ${JSON.stringify(user)} (ID: ${user.id})`);
     defaultStorageManager.set('user', user);
+    defaultStorageManager.set('userID', user.id);
     
     // 2. 确保默认账户存在 - 检查该用户是否已有账本，如无则创建默认账本
     const account = await ensureDefaultAccount(user.id);

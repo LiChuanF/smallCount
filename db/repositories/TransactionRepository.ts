@@ -1,3 +1,4 @@
+import Big from "big.js";
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import { and, between, count, desc, eq } from "drizzle-orm";
 import {
@@ -8,8 +9,8 @@ import {
 import { accounts, transactions } from "../schema";
 import { BaseRepository } from "./BaseRepository";
 
-type Transaction = InferSelectModel<typeof transactions>;
-type NewTransaction = InferInsertModel<typeof transactions>;
+export type Transaction = InferSelectModel<typeof transactions>;
+export type NewTransaction = InferInsertModel<typeof transactions>;
 
 export class TransactionRepository extends BaseRepository<Transaction> {
   constructor() {
@@ -33,17 +34,21 @@ export class TransactionRepository extends BaseRepository<Transaction> {
         })
         .returning();
 
-      // 2. 更新账户余额 (简单的业务逻辑：支出减，收入加)
+      // 2. 更新账户余额 (使用 big.js 处理金额计算，避免浮点数精度问题)
       // 注意：转账逻辑更复杂，这里仅展示基本结构
       if (data.type === "expense") {
-        // 读取当前余额 (这里为了演示简单处理，实际可能需要原子更新)
+        // 读取当前余额
         const account = await tx.query.accounts.findFirst({
           where: eq(accounts.id, data.accountId),
         });
         if (account) {
+          const currentBalance = new Big(account.balance || 0);
+          const transactionAmount = new Big(data.amount);
+          const newBalance = currentBalance.minus(transactionAmount);
+          
           await tx
             .update(accounts)
-            .set({ balance: (account.balance || 0) - data.amount })
+            .set({ balance: newBalance.toNumber() })
             .where(eq(accounts.id, data.accountId));
         }
       } else if (data.type === "income") {
@@ -51,9 +56,13 @@ export class TransactionRepository extends BaseRepository<Transaction> {
           where: eq(accounts.id, data.accountId),
         });
         if (account) {
+          const currentBalance = new Big(account.balance || 0);
+          const transactionAmount = new Big(data.amount);
+          const newBalance = currentBalance.plus(transactionAmount);
+          
           await tx
             .update(accounts)
-            .set({ balance: (account.balance || 0) + data.amount })
+            .set({ balance: newBalance.toNumber() })
             .where(eq(accounts.id, data.accountId));
         }
       }

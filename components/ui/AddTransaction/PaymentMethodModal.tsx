@@ -1,10 +1,20 @@
 import { PAYMENT_METHODS } from '@/constants/data';
-import { PaymentMethod } from '@/constants/type';
 import { useTheme } from '@/context/ThemeContext';
+import { PaymentMethod } from '@/db/repositories/PaymentMethodRepository';
 import { Ionicons } from '@expo/vector-icons'; // 替换为 Ionicons
 import React from 'react';
 import { FlatList, Modal, Pressable, Text, useColorScheme, View } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
+
+// 创建兼容FlatList的类型 不直接使用 paymentMethods类型，不然组件会报ts类型错误
+type PaymentMethodFlatListItem = {
+  id: string;
+  name: string;
+  icon: string | null;
+  isDefault: boolean | null;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+};
 
 
 
@@ -30,7 +40,7 @@ const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
   const isDark = colorScheme === 'dark';
 
   // 渲染单个列表项
-  const renderItem = ({ item }: { item: PaymentMethod }) => {
+  const renderItem = ({ item }: { item: PaymentMethodFlatListItem }) => {
     const isSelected = selectedId === item.id;
     
       
@@ -58,7 +68,7 @@ const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
             ${isSelected ? 'bg-blue-100 dark:bg-slate-600' : 'bg-gray-100 dark:bg-slate-700'}
           `}>
             <Ionicons 
-              name={item.icon} 
+              name={item.icon as any} 
               size={22} 
               color={theme.colors.primary} 
             />
@@ -109,8 +119,8 @@ const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
           </View>
 
           {/* 列表区域 */}
-          <FlatList
-            data={data}
+          <FlatList<PaymentMethodFlatListItem>
+            data={data as PaymentMethodFlatListItem[]}
             keyExtractor={(item) => item.id}
             renderItem={renderItem}
             contentContainerStyle={{ padding: 20, paddingBottom: 40 }}

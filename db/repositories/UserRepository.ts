@@ -3,8 +3,8 @@ import { eq } from 'drizzle-orm';
 import { users } from '../schema';
 import { BaseRepository } from './BaseRepository';
 
-type User = InferSelectModel<typeof users>;
-type NewUser = InferInsertModel<typeof users>;
+export type User = InferSelectModel<typeof users>;
+export type NewUser = InferInsertModel<typeof users>;
 
 export class UserRepository extends BaseRepository<User> {
   constructor() {
@@ -34,5 +34,9 @@ export class UserRepository extends BaseRepository<User> {
 
   async findAny(): Promise<User | undefined> {
     return await this.db.query.users.findFirst();
+  }
+
+  async findById(id: string): Promise<User | undefined> {
+    return await this.db.query.users.findFirst({ where: eq(users.id, id) });
   }
 }

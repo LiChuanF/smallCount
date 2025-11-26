@@ -95,7 +95,7 @@ export const tags = sqliteTable('tags', {
 export const paymentMethods = sqliteTable('payment_methods', {
   id: text('id').primaryKey(), // 支付方式唯一标识符，UUID 主键
   name: text('name').notNull(), // 支付方式名称
-  icon: text('icon'), // 图标（emoji 或代码）
+  icon: text('icon').default(''), // 图标（emoji 或代码）
   isDefault: integer('is_default', { mode: 'boolean' }).default(false), // 是否默认支付方式
   createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`), // 创建时间
   updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`), // 最后更新时间

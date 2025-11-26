@@ -5,13 +5,10 @@ import { CategoryGrid } from '@/components/ui/AddTransaction/CategoryGrid';
 import { Header } from '@/components/ui/AddTransaction/Header';
 import { NumberPad } from '@/components/ui/AddTransaction/NumberPad';
 import { Toolbar } from '@/components/ui/AddTransaction/Toolbar';
-import { PaymentMethod } from '@/constants/type';
 import { Account } from '@/db/repositories/AccountRepository';
+import { PaymentMethod } from '@/db/repositories/PaymentMethodRepository';
 import { NewTag } from '@/db/repositories/TagRepository';
-import { AccountService } from '@/db/services/AccountService';
-import { TagService } from '@/db/services/TagService';
-import { TransactionService } from '@/db/services/TransactionService';
-import { defaultStorageManager } from '@/utils/storage';
+import useDataStore from '@/storage/store/useDataStore';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { StatusBar, View } from 'react-native';
@@ -22,11 +19,14 @@ export default function AddTransactionScreen() {
   const router = useRouter();
   const [type, setType] = useState<'expense' | 'income'>('expense');
   const [amount, setAmount] = useState('');
-  const [note, setNote] = useState(''); // 新增备注状态
+  const [note, setNote] = useState(''); 
   
-  // 1. 将静态数据转换为 State，以便支持动态修改
-  const [expenseList, setExpenseList] = useState<NewTag[]>([]);
-  const [incomeList, setIncomeList] = useState<NewTag[]>([]);
+  // 使用数据存储获取标签状态
+  const { tags, loadTags, accounts,addTransaction } = useDataStore();
+  
+  // 根据类型过滤标签
+  const expenseList = tags.filter(tag => tag.type === 'expense');
+  const incomeList = tags.filter(tag => tag.type === 'income');
 
   // 2. 根据类型获取当前显示的列表
   // 注意：转账(transfer)通常使用支出分类，或者你可以为其单独创建 transferList
@@ -47,43 +47,21 @@ export default function AddTransactionScreen() {
 
   // 6. 添加账户状态管理
   const [showAccountModal, setShowAccountModal] = useState(false);
-  const [accounts, setAccounts] = useState<Account[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
 
-  const getTagList = async () => {
-    const expenseTags = await TagService.getTagsByType('expense');
-    const incomeTags = await TagService.getTagsByType('income');
-    setExpenseList(expenseTags);
-    setIncomeList(incomeTags);
-    setSelectedCategory(expenseTags[0]);
-  };
-
-  // 获取账户列表
-  const getAccountList = async () => {
-    try {
-      const user = await defaultStorageManager.get<Account>('user')
-      // 这里需要传入当前用户的ID，暂时使用默认用户ID
-      if (!user) {
-        console.error('用户信息不存在');
-        return;
-      }
-      const userAccounts = await AccountService.getUserAssets(user.id);
-      setAccounts(userAccounts.accounts || []);
-      
-      // 设置默认账户
-      const defaultAccount = userAccounts.accounts.find(account => account.isDefault) || accounts[0];
-      if (defaultAccount) {
-        setSelectedAccount(defaultAccount);
-      }
-    } catch (error) {
-      console.error('获取账户列表失败:', error);
-    }
-  };
 
   useEffect(() => {
-    getTagList();
-    getAccountList();
+    if(accounts.length > 0) {
+      setSelectedAccount(accounts.find(account => account.isDefault) || accounts[0]);
+    }
   }, []);
+
+  // 当标签数据变化时，确保选中分类正确
+  useEffect(() => {
+    if (currentCategories.length > 0 && !selectedCategory) {
+      setSelectedCategory(currentCategories[0]);
+    }
+  }, [currentCategories, selectedCategory]);
 
   // 处理数字键盘输入
   const handlePressNum = (num: string) => {
@@ -131,23 +109,28 @@ export default function AddTransactionScreen() {
       
       // 构建交易数据
       const transactionData = {
-        accountId: selectedAccount.id,
         type: type,
         amount: parseFloat(amount),
         tagId: selectedCategory.id,
+        accountId: selectedAccount.id,
         description: note || `${selectedCategory.name}${type === 'income' ? '收入' : '支出'}`,
         transactionDate: new Date(selectedDate),
         paymentMethodId: (selectedPaymentMethod as PaymentMethod).id,
-        note: note || '',
-        attachmentIds: '', // 简化版本不支持附件
+        notes: note || '',
+        transferAccountId: null, // 简化版本不支持转账
+        location: null, // 简化版本不支持位置
+        receiptImageUrl: null, // 简化版本不支持收据图片
+        isRecurring: false, // 简化版本不支持周期性交易
+        recurringRule: null, // 简化版本不支持周期性规则
+        isConfirmed: true, // 默认已确认
+        attachmentIds: null, // 简化版本不支持附件
       };
       
       console.log('正在创建交易:', transactionData);
       
       // 调用交易服务创建记录
-      const createdTransaction = await TransactionService.createSimpleTransaction(transactionData);
+      await addTransaction(transactionData);
       
-      console.log('交易创建成功:', createdTransaction);
       
       // 显示成功提示
       Toast.show({
@@ -179,11 +162,8 @@ export default function AddTransactionScreen() {
 
   // 4. 新增：处理分类数据的更新（新增/修改/删除）
   const handleUpdateCategories = (newCategories: NewTag[]) => {
-    if (type === 'income') {
-      setIncomeList(newCategories);
-    } else {
-      setExpenseList(newCategories);
-    }
+    // 由于现在标签数据通过数据存储管理，这里只需要重新加载标签数据
+    loadTags();
 
     // 关键逻辑：如果当前选中的分类被删除了，将选中项重置为列表第一个，防止 UI 错误
     const isSelectedStillValid = newCategories.some(c => c.id === selectedCategory?.id);

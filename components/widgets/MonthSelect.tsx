@@ -14,6 +14,8 @@ interface MonthPickerModalProps {
   onConfirm: (year: number, month: number) => void;
   initialYear?: number;
   initialMonth?: number;
+  minDate?: string;
+  maxDate?: string;
 }
 
 const MonthPickerModal: React.FC<MonthPickerModalProps> = ({
@@ -22,6 +24,8 @@ const MonthPickerModal: React.FC<MonthPickerModalProps> = ({
   onConfirm,
   initialYear = new Date().getFullYear(),
   initialMonth = new Date().getMonth() + 1,
+  minDate,
+  maxDate,
 }) => {
   const { theme } = useTheme();
   const [selectedYear, setSelectedYear] = useState(initialYear);
@@ -45,6 +49,7 @@ const MonthPickerModal: React.FC<MonthPickerModalProps> = ({
       bgOverlay: isDark ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.5)',
       bgModal: isDark ? theme.colors.card || '#1e293b' : theme.colors.background || '#ffffff',
       bgHeader: isDark ? theme.colors.card || '#374151' : theme.colors.background || '#f3f4f6',
+      textSecondary: isDark ? theme.colors.textSecondary || '#9ca3af' : theme.colors.textSecondary || '#6b7280',
     };
   };
 
@@ -62,6 +67,36 @@ const MonthPickerModal: React.FC<MonthPickerModalProps> = ({
     }
   }, [visible, initialYear, initialMonth]);
 
+  // 解析日期限制
+  const parseDateLimit = (dateString?: string) => {
+    if (!dateString) return null;
+    const [year, month] = dateString.split('-').map(Number);
+    return { year, month };
+  };
+
+  const minDateObj = parseDateLimit(minDate);
+  const maxDateObj = parseDateLimit(maxDate);
+
+  // 检查月份是否在允许范围内
+  const isMonthAllowed = (year: number, month: number) => {
+    if (minDateObj) {
+      if (year < minDateObj.year) return false;
+      if (year === minDateObj.year && month < minDateObj.month) return false;
+    }
+    if (maxDateObj) {
+      if (year > maxDateObj.year) return false;
+      if (year === maxDateObj.year && month > maxDateObj.month) return false;
+    }
+    return true;
+  };
+
+  // 检查年份是否在允许范围内
+  const isYearAllowed = (year: number) => {
+    if (minDateObj && year < minDateObj.year) return false;
+    if (maxDateObj && year > maxDateObj.year) return false;
+    return true;
+  };
+
   // 生成月份数据 (1-12)
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
 
@@ -73,18 +108,30 @@ const MonthPickerModal: React.FC<MonthPickerModalProps> = ({
   // 头部左侧按钮点击
   const handleHeaderPrev = () => {
     if (mode === 'month') {
-      setSelectedYear((prev) => prev - 1);
+      const newYear = selectedYear - 1;
+      if (!minDateObj || newYear >= minDateObj.year) {
+        setSelectedYear(newYear);
+      }
     } else {
-      setYearBasis((prev) => prev - 12); // 年份模式下，向前翻12年
+      const newYearBasis = yearBasis - 12;
+      if (!minDateObj || newYearBasis + 11 >= minDateObj.year) {
+        setYearBasis(newYearBasis); // 年份模式下，向前翻12年
+      }
     }
   };
 
   // 头部右侧按钮点击
   const handleHeaderNext = () => {
     if (mode === 'month') {
-      setSelectedYear((prev) => prev + 1);
+      const newYear = selectedYear + 1;
+      if (!maxDateObj || newYear <= maxDateObj.year) {
+        setSelectedYear(newYear);
+      }
     } else {
-      setYearBasis((prev) => prev + 12); // 年份模式下，向后翻12年
+      const newYearBasis = yearBasis + 12;
+      if (!maxDateObj || newYearBasis <= maxDateObj.year) {
+        setYearBasis(newYearBasis); // 年份模式下，向后翻12年
+      }
     }
   };
 
@@ -101,8 +148,28 @@ const MonthPickerModal: React.FC<MonthPickerModalProps> = ({
 
   // 选中具体年份
   const handleYearSelect = (year: number) => {
-    setSelectedYear(year);
-    setMode('month'); // 选中后自动切回月份选择
+    if (isYearAllowed(year)) {
+      setSelectedYear(year);
+      setMode('month'); // 选中后自动切回月份选择
+    }
+  };
+
+  // 检查左侧按钮是否可用
+  const isPrevButtonEnabled = () => {
+    if (mode === 'month') {
+      return !minDateObj || selectedYear - 1 >= minDateObj.year;
+    } else {
+      return !minDateObj || yearBasis - 12 + 11 >= minDateObj.year;
+    }
+  };
+
+  // 检查右侧按钮是否可用
+  const isNextButtonEnabled = () => {
+    if (mode === 'month') {
+      return !maxDateObj || selectedYear + 1 <= maxDateObj.year;
+    } else {
+      return !maxDateObj || yearBasis + 12 <= maxDateObj.year;
+    }
   };
 
   const handleConfirm = () => {
@@ -147,12 +214,12 @@ const MonthPickerModal: React.FC<MonthPickerModalProps> = ({
                 {/* 2. 中间导航栏 (上一个/显示区/下一个) */}
                 <View className="flex-row justify-between items-center mb-6 px-4">
                   <TouchableOpacity 
-                    onPress={handleHeaderPrev}
+                    onPress={isPrevButtonEnabled() ? handleHeaderPrev : undefined}
                     className="p-2"
                     hitSlop={10}
+                    disabled={!isPrevButtonEnabled()}
                   >
-                    {/* 根据模式显示不同的辅助文字，这里简化为统一箭头或文字 */}
-                    <Text className="text-gray-500 dark:text-gray-400">
+                    <Text className={isPrevButtonEnabled() ? "text-gray-500 dark:text-gray-400" : "text-gray-300 dark:text-gray-600"}>
                        ◀
                     </Text>
                   </TouchableOpacity>
@@ -172,11 +239,12 @@ const MonthPickerModal: React.FC<MonthPickerModalProps> = ({
                   </TouchableOpacity>
 
                   <TouchableOpacity 
-                    onPress={handleHeaderNext}
+                    onPress={isNextButtonEnabled() ? handleHeaderNext : undefined}
                     className="p-2"
                     hitSlop={10}
+                    disabled={!isNextButtonEnabled()}
                   >
-                    <Text className="text-gray-500 dark:text-gray-400">
+                    <Text className={isNextButtonEnabled() ? "text-gray-500 dark:text-gray-400" : "text-gray-300 dark:text-gray-600"}>
                       ▶
                     </Text>
                   </TouchableOpacity>
@@ -190,20 +258,26 @@ const MonthPickerModal: React.FC<MonthPickerModalProps> = ({
                     // --- 月份渲染 ---
                     months.map((month) => {
                       const isSelected = month === selectedMonth;
+                      const isDisabled = !isMonthAllowed(selectedYear, month);
                       return (
                         <TouchableOpacity
                           key={month}
-                          onPress={() => setSelectedMonth(month)}
+                          onPress={() => !isDisabled && setSelectedMonth(month)}
                           className="w-[31%] mb-3 py-3 rounded-xl border items-center justify-center"
                           style={{
-                            backgroundColor: isSelected ? themeColors.primary : themeColors.bgCard,
-                            borderColor: isSelected ? themeColors.primary : themeColors.border,
+                            backgroundColor: isSelected ? themeColors.primary : 
+                              isDisabled ? themeColors.bgHeader : themeColors.bgCard,
+                            borderColor: isSelected ? themeColors.primary : 
+                              isDisabled ? themeColors.border : themeColors.border,
+                            opacity: isDisabled ? 0.5 : 1,
                           }}
+                          disabled={isDisabled}
                         >
                           <Text
                             className="text-base font-medium"
                             style={{
-                              color: isSelected ? themeColors.textOnPrimary : themeColors.textMain,
+                              color: isSelected ? themeColors.textOnPrimary : 
+                                isDisabled ? themeColors.textSecondary : themeColors.textMain,
                             }}
                           >
                             {month}月
@@ -215,20 +289,26 @@ const MonthPickerModal: React.FC<MonthPickerModalProps> = ({
                     // --- 年份渲染 ---
                     yearsGrid.map((year) => {
                       const isSelected = year === selectedYear;
+                      const isDisabled = !isYearAllowed(year);
                       return (
                         <TouchableOpacity
                           key={year}
                           onPress={() => handleYearSelect(year)}
                           className="w-[31%] mb-3 py-3 rounded-xl border items-center justify-center"
                           style={{
-                            backgroundColor: isSelected ? themeColors.primary : themeColors.bgCard,
-                            borderColor: isSelected ? themeColors.primary : themeColors.border,
+                            backgroundColor: isSelected ? themeColors.primary : 
+                              isDisabled ? themeColors.bgHeader : themeColors.bgCard,
+                            borderColor: isSelected ? themeColors.primary : 
+                              isDisabled ? themeColors.border : themeColors.border,
+                            opacity: isDisabled ? 0.5 : 1,
                           }}
+                          disabled={isDisabled}
                         >
                           <Text
                             className="text-base font-medium"
                             style={{
-                              color: isSelected ? themeColors.textOnPrimary : themeColors.textMain,
+                              color: isSelected ? themeColors.textOnPrimary : 
+                                isDisabled ? themeColors.textSecondary : themeColors.textMain,
                             }}
                           >
                             {year}
