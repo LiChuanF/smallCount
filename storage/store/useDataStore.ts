@@ -65,14 +65,13 @@ const useDataStore = createAppStore<DataStore>((set, get) => ({
       await get().loadCurrentUser();
       await get().loadAccounts();
       const defaultAccount = get().accounts.find((a) => a.isDefault);
-      set({ activeAccountId: defaultAccount!.id});
+      set({ activeAccountId: defaultAccount!.id });
       // 并行加载基础数据
       await Promise.all([
         get().loadTags(),
         get().loadPaymentMethods(),
         get().loadTransactions(defaultAccount!.id),
       ]);
-     
 
       set({
         isInitialized: true,
@@ -180,7 +179,7 @@ const useDataStore = createAppStore<DataStore>((set, get) => ({
       }
 
       set({ transactions, transactionsLoading: false });
-       // 转换交易数据为日期格式
+      // 转换交易数据为日期格式
       await get().convertTransactionsForCalendar(get().transactions);
       // 分组交易数据
       await get().groupTransactionsByDate(get().transactions);
@@ -231,10 +230,14 @@ const useDataStore = createAppStore<DataStore>((set, get) => ({
 
         if (transaction.type === "expense") {
           const currentExpense = new Big(calendarData[dateStr].expense);
-          calendarData[dateStr].expense = currentExpense.plus(new Big(transaction.amount)).toNumber();
+          calendarData[dateStr].expense = currentExpense
+            .plus(new Big(transaction.amount))
+            .toNumber();
         } else if (transaction.type === "income") {
           const currentIncome = new Big(calendarData[dateStr].income);
-          calendarData[dateStr].income = currentIncome.plus(new Big(transaction.amount)).toNumber();
+          calendarData[dateStr].income = currentIncome
+            .plus(new Big(transaction.amount))
+            .toNumber();
         }
       });
       set({ transactionsDataForCalendar: calendarData });
@@ -263,7 +266,7 @@ const useDataStore = createAppStore<DataStore>((set, get) => ({
       const expenseTotal = data
         .filter((t: any) => t.type === "expense")
         .reduce((sum: Big, t: any) => sum.plus(new Big(t.amount)), new Big(0));
-      
+
       const incomeTotal = data
         .filter((t: any) => t.type === "income")
         .reduce((sum: Big, t: any) => sum.plus(new Big(t.amount)), new Big(0));
@@ -284,13 +287,16 @@ const useDataStore = createAppStore<DataStore>((set, get) => ({
   },
   addTransaction: async (transaction) => {
     try {
-      console.log("添加交易数据",transaction.transactionDate.getFullYear(),transaction.transactionDate.getMonth() + 1);
       const newTransaction =
         await TransactionService.createTransaction(transaction);
       const { transactions } = get();
       set({ transactions: [...transactions, newTransaction] });
 
-      await get().loadTransactions(get().activeAccountId!,transaction.transactionDate.getFullYear(),transaction.transactionDate.getMonth() + 1);
+      await get().loadTransactions(
+        get().activeAccountId!,
+        transaction.transactionDate.getFullYear(),
+        transaction.transactionDate.getMonth() + 1
+      );
       // 更新相关账户的余额
       await get().loadAccounts();
     } catch (error) {

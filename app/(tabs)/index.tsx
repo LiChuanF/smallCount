@@ -74,12 +74,12 @@ const DetailList = ({
       >
         <TransactionItem
           key={item.id}
-          title={item.description}
+          title={item.tag.name}
           amount={item.amount}
           type={item.type}
           date={item.date}
           paymentMethod={item.paymentMethod}
-          tags={item.tags}
+          tag={item.tag}
           icon={item.icon}
         />
       </SwipeableRow>

@@ -1,11 +1,31 @@
 
 import type { InferInsertModel } from 'drizzle-orm';
+import type { PaymentMethod } from '../repositories/PaymentMethodRepository';
+import { PaymentMethodRepository } from '../repositories/PaymentMethodRepository';
+import { NewTag, TagRepository } from '../repositories/TagRepository';
+import type { Transaction } from '../repositories/TransactionRepository';
 import { TransactionRepository } from '../repositories/TransactionRepository';
 import { transactions } from '../schema';
 
 type NewTransaction = InferInsertModel<typeof transactions>;
 
 const transactionRepo = new TransactionRepository();
+const tagRepo = new TagRepository();
+const paymentMethodRepo = new PaymentMethodRepository();
+
+// 定义包含标签和支付方式信息的交易记录类型
+export interface TransactionWithTagAndPaymentMethod extends Transaction {
+  tag?: Omit<NewTag, 'id' | 'createdAt' | 'updatedAt'>;
+  paymentMethod?: Omit<PaymentMethod, 'id' | 'createdAt' | 'updatedAt'>;
+}
+
+export interface PaginatedTransactionsWithTagsAndPaymentMethods {
+  items: TransactionWithTagAndPaymentMethod[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
 
 export const TransactionService = {
   /**
@@ -36,19 +56,19 @@ export const TransactionService = {
   },
 
   /**
-   * 获取某月交易列表
+   * 获取某月交易列表（包含标签和支付方式信息）
    * @param accountId - 账户ID
    * @param year - 年份
    * @param month - 月份 (1-12)
    * @param pagination - 分页参数
-   * @returns 分页的交易列表
+   * @returns 分页的交易列表（包含标签和支付方式信息）
    */
   async getTransactionsByMonth(
     accountId: string, 
     year: number, 
     month: number, 
     pagination?: { page?: number; pageSize?: number }
-  ) {
+  ): Promise<PaginatedTransactionsWithTagsAndPaymentMethods> {
     if (month < 1 || month > 12) {
       throw new Error('月份必须在1-12之间');
     }
@@ -57,7 +77,57 @@ export const TransactionService = {
       throw new Error('年份必须在2000-2100之间');
     }
     
-    return await transactionRepo.findByMonth(accountId, year, month, pagination);
+    // 获取基础交易数据
+    const result = await transactionRepo.findByMonth(accountId, year, month, pagination);
+    
+    // 获取所有交易记录对应的标签ID
+    const tagIds = result.items
+      .map(tx => tx.tagId)
+      .filter((tagId): tagId is string => tagId !== null && tagId !== undefined);
+    
+    // 获取所有交易记录对应的支付方式ID
+    const paymentMethodIds = result.items
+      .map(tx => tx.paymentMethodId)
+      .filter((paymentMethodId): paymentMethodId is string => paymentMethodId !== null && paymentMethodId !== undefined);
+    
+    // 批量获取标签信息
+    const tagsMap = new Map<string, Omit<NewTag, 'id' | 'createdAt' | 'updatedAt'>>();
+    if (tagIds.length > 0) {
+      // 这里可以优化为批量查询，但目前先使用循环查询
+      for (const tagId of tagIds) {
+        const tag = await tagRepo.findById(tagId);
+        if (tag) {
+          tagsMap.set(tagId, tag);
+        }
+      }
+    }
+    
+    // 批量获取支付方式信息
+    const paymentMethodsMap = new Map<string,  Omit<PaymentMethod, 'id' | 'createdAt' | 'updatedAt'>>();
+    if (paymentMethodIds.length > 0) {
+      // 这里可以优化为批量查询，但目前先使用循环查询
+      for (const paymentMethodId of paymentMethodIds) {
+        const paymentMethod = await paymentMethodRepo.findById(paymentMethodId);
+        if (paymentMethod) {
+          paymentMethodsMap.set(paymentMethodId, paymentMethod);
+        }
+      }
+    }
+    
+    // 拼装交易记录、标签信息和支付方式信息
+    const transactionsWithTagsAndPaymentMethods: TransactionWithTagAndPaymentMethod[] = result.items.map(tx => ({
+      ...tx,
+      tag: tx.tagId ? tagsMap.get(tx.tagId) : undefined,
+      paymentMethod: tx.paymentMethodId ? paymentMethodsMap.get(tx.paymentMethodId) : undefined
+    }));
+    
+    return {
+      items: transactionsWithTagsAndPaymentMethods,
+      total: result.total,
+      page: result.page,
+      pageSize: result.pageSize,
+      totalPages: result.totalPages
+    };
   },
 
   /**
@@ -77,7 +147,7 @@ export const TransactionService = {
    * @returns 交易统计信息
    */
   async getMonthlyStats(accountId: string, year: number, month: number) {
-    const result = await transactionRepo.findByMonth(accountId, year, month);
+    const result = await this.getTransactionsByMonth(accountId, year, month);
     
     const transactions = result.items;
     const totalIncome = transactions
@@ -102,14 +172,34 @@ export const TransactionService = {
   },
 
   /**
-   * 获取交易详情
+   * 获取交易详情（包含标签和支付方式信息）
    * @param transactionId - 交易ID
-   * @returns 交易详情
+   * @returns 交易详情（包含标签和支付方式信息）
    */
-  async getTransactionDetail(transactionId: string) {
-    // 这里可以添加关联查询，获取交易相关的标签、附件等信息
-    // 目前先返回基础交易信息
-    return await transactionRepo.findById(transactionId);
+  async getTransactionDetail(transactionId: string): Promise<TransactionWithTagAndPaymentMethod | undefined> {
+    const transaction = await transactionRepo.findById(transactionId);
+    
+    if (!transaction) {
+      return undefined;
+    }
+    
+    // 获取标签信息
+    let tag: Omit<NewTag, 'id' | 'createdAt' | 'updatedAt'> | undefined;
+    if (transaction.tagId) {
+      tag = await tagRepo.findById(transaction.tagId);
+    }
+    
+    // 获取支付方式信息
+    let paymentMethod:  Omit<PaymentMethod, 'id' | 'createdAt' | 'updatedAt'> | undefined;
+    if (transaction.paymentMethodId) {
+      paymentMethod = await paymentMethodRepo.findById(transaction.paymentMethodId);
+    }
+    
+    return {
+      ...transaction,
+      tag,
+      paymentMethod
+    };
   },
 
   /**

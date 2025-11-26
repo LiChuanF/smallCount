@@ -48,6 +48,7 @@ export const accounts = sqliteTable('accounts', {
 export const transactions = sqliteTable('transactions', {
   id: text('id').primaryKey(), // 交易唯一标识符，UUID 主键
   tagId: text('tag_id').references(() => tags.id).notNull(), // 关联的标签 ID
+  paymentMethodId: text('payment_method_id').references(() => paymentMethods.id).notNull(), // 关联的支付方式 ID
   accountId: text('account_id').references(() => accounts.id).notNull(), // 关联的账户 ID
   attachmentIds: text('attachment_ids'), // 关联的附件 ID 列表（逗号分隔）
   type: text('type', { enum: ['expense', 'income', 'transfer'] }).notNull(), // 交易类型：支出/收入/转账
@@ -55,7 +56,6 @@ export const transactions = sqliteTable('transactions', {
   description: text('description'), // 交易描述（如：午餐、工资）
   transferAccountId: text('transfer_account_id').references(() => accounts.id), // 转账目标账户 ID（仅转账）
   transactionDate: integer('transaction_date', { mode: 'timestamp' }).notNull(), // 交易日期（Unix 时间戳）
-  paymentMethodId: text('payment_method_id').references(() => paymentMethods.id).notNull(), // 关联的支付方式 ID
   location: text('location'), // 交易地点
   notes: text('notes'), // 备注
   receiptImageUrl: text('receipt_image_url'), // 收据图片 URL
@@ -85,7 +85,7 @@ export const tags = sqliteTable('tags', {
   id: text('id').primaryKey(), // 标签唯一标识符，UUID 主键
   name: text('name').notNull(), // 标签名称
   color: text('color'), // 标签颜色（十六进制）
-  icon: text('icon'), // 图标（emoji 或代码）
+  icon: text('icon'), // 图标（emoji 或代码） Ionicons图标
   type: text('type', { enum: ['expense', 'income'] }).notNull(), // 标签类型：支出/收入
   isDefault: integer('is_default', { mode: 'boolean' }).default(false), // 是否默认标签
   createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`), // 创建时间

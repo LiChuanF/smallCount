@@ -1,6 +1,8 @@
+import { PaymentMethod } from '@/constants/type';
+import { NewTag } from '@/db/repositories/TagRepository';
+import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Text, View } from 'react-native';
-
 interface Tag {
   id: string;
   name: string;
@@ -12,8 +14,8 @@ interface TransactionItemProps {
   amount: number;
   date: string;
   type: 'income' | 'expense';
-  paymentMethod?: string;
-  tags?: Tag[];
+  paymentMethod?: Omit<PaymentMethod, 'id' | 'createdAt' | 'updatedAt'>;
+  tag?: Omit<NewTag, 'id' | 'createdAt'>;
   icon?: string;
 }
 
@@ -23,32 +25,24 @@ export default function TransactionItem({
   date, 
   type,
   paymentMethod,
-  tags = [],
+  tag,
   icon = "💰"
 }: TransactionItemProps) {
   return (
     <View className="flex-row justify-between items-center py-6 px-5 bg-white bg-gray-200 dark:bg-charcoal-800">
       <View className="flex-1 flex-row items-center">
         <View className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mr-3 dark:bg-gray-800">
-          <Text className="text-lg">{icon}</Text>
+        <Ionicons name={tag!.icon as any} size={24} color={tag!.color as string} />
+          {/* <Text className="text-lg">{icon}</Text> */}
         </View>
         <View className="flex-1">
           <Text className="text-base font-medium text-gray-900 mb-1 dark:text-gray-100">{title}</Text>
           <View className="flex-row items-center flex-wrap gap-2">
             {paymentMethod && (
               <View className="px-2 py-0.5 rounded-[4px] bg-secondary">
-                <Text className="text-xs text-white">{paymentMethod}</Text>
+                <Text className="text-xs text-white">{paymentMethod.name}</Text>
               </View>
             )}
-            {tags.map(tag => (
-              <View 
-                key={tag.id} 
-                className="px-2 py-0.5 rounded-full" 
-                style={{ backgroundColor: tag.color || '#E5E7EB' }}
-              >
-                <Text className="text-xs text-white dark:text-gray-100">{tag.name}</Text>
-              </View>
-            ))}
           </View>
         </View>
       </View>
