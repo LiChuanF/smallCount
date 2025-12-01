@@ -65,4 +65,16 @@ export class AccountRepository extends BaseRepository<Account> {
       .set({ isArchived: true })
       .where(eq(accounts.id, accountId));
   }
+
+  /**
+   * 获取用户的active账户
+   * @param userId - 用户ID
+   * @returns active账户信息
+   */
+  async getActiveAccount(userId: string): Promise<Account | undefined> {
+    return await this.db.query.accounts.findFirst({
+      where: and(eq(accounts.userId, userId), eq(accounts.isArchived, false)),
+      orderBy: (accounts, { desc }) => [desc(accounts.createdAt)],
+    });
+  }
 }

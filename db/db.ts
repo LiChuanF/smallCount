@@ -165,14 +165,14 @@ const _init = async () => {
             await runWebMigrations(expoDb);
             _db = drizzle(expoDb, { 
               schema,
-              logger: {
-                logQuery: (query, params) => {
-                  console.log('📝 SQL Query:', query);
-                  if (params && params.length > 0) {
-                    console.log('📝 SQL Params:', params);
-                  }
-                }
-              }
+              // logger: {
+              //   logQuery: (query, params) => {
+              //     console.log('📝 SQL Query:', query);
+              //     if (params && params.length > 0) {
+              //       console.log('📝 SQL Params:', params);
+              //     }
+              //   }
+              // }
             });
             console.log('✅ Web Database initialized');
         } catch (e: any) {
@@ -217,14 +217,14 @@ export const db = new Proxy({} as DbType, {
       const expoDb = openDatabaseSync(DB_NAME);
       _db = drizzle(expoDb, { 
         schema,
-        logger: {
-          logQuery: (query, params) => {
-            console.log('📝 SQL Query:', query);
-            if (params && params.length > 0) {
-              console.log('📝 SQL Params:', params);
-            }
-          }
-        }
+        // logger: {
+        //   logQuery: (query, params) => {
+        //     console.log('📝 SQL Query:', query);
+        //     if (params && params.length > 0) {
+        //       console.log('📝 SQL Params:', params);
+        //     }
+        //   }
+        // }
       });
       return (_db as any)[prop];
     }

@@ -73,4 +73,13 @@ export class AccountService {
   static async setAsArchived(accountId: string) {
     return await accountRepo.setAsArchived(accountId);
   }
+
+  /**
+   * 获取当前active账户
+   * @param userId - 用户ID
+   * @returns active账户信息
+   */
+  static async getActiveAccount(userId: string) {
+    return await accountRepo.getActiveAccount(userId);
+  }
 }

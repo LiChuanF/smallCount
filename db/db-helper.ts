@@ -9,6 +9,7 @@ interface DrizzleQuery {
 export interface PaginationParams {
   page?: number;     // 当前页码，默认为 1
   pageSize?: number; // 每页条数，默认为 10或20
+  ignorePagination?: boolean; // 是否忽略分页，可直接获取所有数据 默认 false
 }
 
 // 分页返回结果接口
@@ -28,16 +29,17 @@ export interface PaginatedResult<T> {
  * @param params - 分页参数
  */
 export async function withPagination<T>(
-  qb: any, // <--- 关键修改：直接使用 any。Drizzle 的 QueryBuilder 类型太深，很难手动匹配。
-  countQb: any | null, // <--- 关键修改：同上
-  params: PaginationParams = {}
+  qb: any, // 直接使用 any。Drizzle 的 QueryBuilder 类型太深，很难手动匹配。
+  countQb: any | null, 
+  params: PaginationParams = {},
+  ignorePagination = false, // 是否忽略分页，可直接获取所有数据 默认 false
 ): Promise<PaginatedResult<T>> {
   const { page = 1, pageSize = 20 } = params;
   const offset = (page - 1) * pageSize;
 
-  // 1. 添加分页限制
+  // 1. 如果忽略分页，直接使用原始查询对象；否则添加分页限制
   // 因为我们把 qb 设为了 any，这里就能随意调用 limit/offset 而不报错
-  const queryWithPagination = qb.limit(pageSize).offset(offset);
+  const queryWithPagination = ignorePagination ? qb : qb.limit(pageSize).offset(offset);
 
   // 2. 并行执行
   const [items, totalResult] = await Promise.all([

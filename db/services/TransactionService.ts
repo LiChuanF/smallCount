@@ -1,5 +1,6 @@
 
 import type { InferInsertModel } from 'drizzle-orm';
+import { PaginationParams } from '../db-helper';
 import type { PaymentMethod } from '../repositories/PaymentMethodRepository';
 import { PaymentMethodRepository } from '../repositories/PaymentMethodRepository';
 import { NewTag, TagRepository } from '../repositories/TagRepository';
@@ -19,8 +20,28 @@ export interface TransactionWithTagAndPaymentMethod extends Transaction {
   paymentMethod?: Omit<PaymentMethod, 'id' | 'createdAt' | 'updatedAt'>;
 }
 
+// 定义每周统计数据接口
+export interface WeeklyStats {
+  week: number; // 周数（1-4）
+  startDate: Date; // 周开始日期
+  endDate: Date; // 周结束日期
+  income: number; // 收入总额
+  expense: number; // 支出总额
+  transactions: TransactionWithTagAndPaymentMethod[]; // 本周交易记录
+}
+
 export interface PaginatedTransactionsWithTagsAndPaymentMethods {
   items: TransactionWithTagAndPaymentMethod[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  weeklyStats?: WeeklyStats[]; // 可选的每周统计信息
+}
+
+// 定义包含items的结果类型
+interface ResultWithItems {
+  items: Transaction[];
   total: number;
   page: number;
   pageSize: number;
@@ -56,30 +77,13 @@ export const TransactionService = {
   },
 
   /**
-   * 获取某月交易列表（包含标签和支付方式信息）
-   * @param accountId - 账户ID
-   * @param year - 年份
-   * @param month - 月份 (1-12)
-   * @param pagination - 分页参数
-   * @returns 分页的交易列表（包含标签和支付方式信息）
+   * 私有方法：为交易记录添加标签和支付方式信息
+   * @param result - 包含交易记录的结果对象
+   * @returns 带有标签和支付方式信息的交易记录列表
    */
-  async getTransactionsByMonth(
-    accountId: string, 
-    year: number, 
-    month: number, 
-    pagination?: { page?: number; pageSize?: number }
-  ): Promise<PaginatedTransactionsWithTagsAndPaymentMethods> {
-    if (month < 1 || month > 12) {
-      throw new Error('月份必须在1-12之间');
-    }
-    
-    if (year < 2000 || year > 2100) {
-      throw new Error('年份必须在2000-2100之间');
-    }
-    
-    // 获取基础交易数据
-    const result = await transactionRepo.findByMonth(accountId, year, month, pagination);
-    
+   async enrichTransactionsWithTagsAndPaymentMethods(
+    result: ResultWithItems
+  ): Promise<TransactionWithTagAndPaymentMethod[]> {
     // 获取所有交易记录对应的标签ID
     const tagIds = result.items
       .map(tx => tx.tagId)
@@ -103,7 +107,7 @@ export const TransactionService = {
     }
     
     // 批量获取支付方式信息
-    const paymentMethodsMap = new Map<string,  Omit<PaymentMethod, 'id' | 'createdAt' | 'updatedAt'>>();
+    const paymentMethodsMap = new Map<string, Omit<PaymentMethod, 'id' | 'createdAt' | 'updatedAt'>>();
     if (paymentMethodIds.length > 0) {
       // 这里可以优化为批量查询，但目前先使用循环查询
       for (const paymentMethodId of paymentMethodIds) {
@@ -115,11 +119,40 @@ export const TransactionService = {
     }
     
     // 拼装交易记录、标签信息和支付方式信息
-    const transactionsWithTagsAndPaymentMethods: TransactionWithTagAndPaymentMethod[] = result.items.map(tx => ({
+    return result.items.map(tx => ({
       ...tx,
       tag: tx.tagId ? tagsMap.get(tx.tagId) : undefined,
       paymentMethod: tx.paymentMethodId ? paymentMethodsMap.get(tx.paymentMethodId) : undefined
     }));
+  },
+
+  /**
+   * 获取某月交易列表（包含标签和支付方式信息）
+   * @param accountId - 账户ID
+   * @param year - 年份
+   * @param month - 月份 (1-12)
+   * @param pagination - 分页参数
+   * @returns 分页的交易列表（包含标签和支付方式信息）
+   */
+  async getTransactionsByMonth(
+    accountId: string, 
+    year: number, 
+    month: number, 
+    pagination?: { page?: number; pageSize?: number, ignorePagination?: boolean }
+  ): Promise<PaginatedTransactionsWithTagsAndPaymentMethods> {
+    if (month < 1 || month > 12) {
+      throw new Error('月份必须在1-12之间');
+    }
+    
+    if (year < 2000 || year > 2100) {
+      throw new Error('年份必须在2000-2100之间');
+    }
+    
+    // 获取基础交易数据
+    const result = await transactionRepo.findByMonth(accountId, year, month, pagination);
+    
+    // 使用封装的方法添加标签和支付方式信息
+    const transactionsWithTagsAndPaymentMethods = await this.enrichTransactionsWithTagsAndPaymentMethods(result);
     
     return {
       items: transactionsWithTagsAndPaymentMethods,
@@ -128,6 +161,132 @@ export const TransactionService = {
       pageSize: result.pageSize,
       totalPages: result.totalPages
     };
+  },
+
+  /**
+   * 获取某年某月中每周的交易列表（包含标签和支付方式信息）
+   * @param accountId - 账户ID
+   * @param year - 年份
+   * @param month - 月份 (1-12)
+   * @param pagination - 分页参数
+   * @returns 分页的交易列表（包含标签和支付方式信息）
+   */
+  async getTransactionsByWeek(
+    accountId: string, 
+    year: number, 
+    month: number, 
+    pagination?: PaginationParams
+  ): Promise<PaginatedTransactionsWithTagsAndPaymentMethods> {
+    // 参数校验
+    if (month < 1 || month > 12) {
+      throw new Error('月份必须在1-12之间');
+    }
+    
+    if (year < 2000 || year > 2100) {
+      throw new Error('年份必须在2000-2100之间');
+    }
+
+    
+    // 获取基础交易数据
+    const result = await transactionRepo.findByMonth(accountId, year, month, {
+      ...pagination,
+      ignorePagination: true,
+    });
+    
+    // 使用封装的方法添加标签和支付方式信息
+    const transactionsWithTagsAndPaymentMethods = await this.enrichTransactionsWithTagsAndPaymentMethods(result);
+    
+    // 按周分组
+    
+    // 计算当前月份的四周日期范围
+    const getWeeksInMonth = (year: number, month: number): WeeklyStats[] => {
+      const monthStart = new Date(year, month - 1, 1);
+      const monthEnd = new Date(year, month, 0); // 本月最后一天
+      const weeks: WeeklyStats[] = [];
+      
+      // 计算本月有多少天
+      const daysInMonth = monthEnd.getDate();
+      
+      // 计算每周的开始和结束日期
+      // 将一个月分成4周，大致均匀分布
+      const daysPerWeek = Math.ceil(daysInMonth / 4);
+      
+      for (let i = 0; i < 4; i++) {
+        const weekStartDate = new Date(year, month - 1, i * daysPerWeek + 1);
+        const weekEndDate = i === 3 
+          ? monthEnd // 最后一周结束于月底
+          : new Date(year, month - 1, (i + 1) * daysPerWeek);
+        
+        weeks.push({
+          week: i + 1,
+          startDate: weekStartDate,
+          endDate: weekEndDate,
+          income: 0,
+          expense: 0,
+          transactions: []
+        });
+      }
+      
+      return weeks;
+    };
+    
+    // 获取四周数据结构
+    const weeks = getWeeksInMonth(year, month);
+    
+    // 按周分组交易记录并统计收支
+    transactionsWithTagsAndPaymentMethods.forEach(transaction => {
+      const transactionDate = new Date(transaction.transactionDate);
+      
+      // 找到交易所在的周
+      const week = weeks.find(w => {
+        return transactionDate >= w.startDate && transactionDate <= w.endDate;
+      });
+      
+      if (week) {
+        week.transactions.push(transaction);
+        
+        // 统计收支
+        if (transaction.type === 'income') {
+          week.income += transaction.amount;
+        } else if (transaction.type === 'expense') {
+          week.expense += transaction.amount;
+        }
+      }
+    });
+
+    console.log("按周分组结果:", weeks);
+    
+    // 调整返回数据，包含每周统计信息
+    return {
+      items: transactionsWithTagsAndPaymentMethods,
+      total: result.total,
+      page: result.page,
+      pageSize: result.pageSize,
+      totalPages: result.totalPages,
+      weeklyStats: weeks // 添加每周统计信息
+    };
+  },
+
+  /**
+   * 获取某年所有月份的交易收支统计情况
+   * @param accountId - 账户ID
+   * @param year - 年份
+   * @param pagination - 分页参数
+   * @returns 交易记录列表
+   */
+  async getTransactionsByYear(
+    accountId: string, 
+    year: number, 
+  ) {
+    // 参数校验
+    if (year < 2000 || year > 2100) {
+      throw new Error('年份必须在2000-2100之间');
+    }
+    
+    // 获取基础交易数据
+    return await transactionRepo.findByYearMonth(accountId, year);
+    
+  
   },
 
   /**

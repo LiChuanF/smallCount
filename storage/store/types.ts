@@ -15,8 +15,8 @@ export interface DataState {
   // 账户相关
   accounts: Account[];
   accountsLoading: boolean;
-  accountsError: string | null;
-  activeAccountId: string | null;
+  accountsError: string;
+  activeAccountId: string;
   activeAccount: Account | null;
 
   // 交易相关
@@ -178,6 +178,10 @@ export interface CategoryData {
   areaPath: string;
   ranking: RankingItem[];
   donut: ChartDataItem[];
+  data: {
+    xAxis: string[];
+    yAxis: number[];
+  };
 }
 
 export interface StatsChartData {
@@ -187,7 +191,7 @@ export interface StatsChartData {
 
 // 统计筛选条件
 export interface StatsFilter {
-  period: 'week' | 'month' | 'year';
+  period: 'week' | 'month';
   type: 'expense' | 'income';
   year: number;
   month: number;
@@ -195,7 +199,6 @@ export interface StatsFilter {
 
 // 统计状态接口
 export interface StatsState {
-  selectedDate: Date;
   filter: StatsFilter;
   chartData: StatsChartData;
   isLoading: boolean;
@@ -204,10 +207,11 @@ export interface StatsState {
 
 // 统计操作接口
 export interface StatsActions {
-  setSelectedDate: (date: Date) => void;
   setFilter: (filter: Partial<StatsFilter>) => void;
-  loadStatsData: (filter: StatsFilter) => Promise<void>;
-  refreshStats: () => Promise<void>;
+  loadStatsData: (accountId: string, filter: StatsFilter) => Promise<void>;
+  loadStatsDataByWeek: (accountId: string, year: number, month: number) => Promise<void>;
+  loadStatsDataByMonth: (accountId: string, year: number) => Promise<void>;
+  loadStatsDataByYear: (accountId: string, year: number) => Promise<void>;
   clearError: () => void;
 }
 
