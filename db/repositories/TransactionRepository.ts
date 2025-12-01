@@ -385,6 +385,58 @@ export class TransactionRepository extends BaseRepository<Transaction> {
     });
   }
 
+  /**
+   * 获取某年或某月总支出或总收入
+   * @param accountId - 账户ID
+   * @param year - 年份
+   * @param month - 月份 (可选，不传则统计整年)
+   * @param type - 交易类型 ('income' 或 'expense')
+   * @returns 统计金额
+   */
+  async getTotalAmountByPeriod(
+    accountId: string,
+    year: number,
+    month?: number,
+    type?: 'income' | 'expense'
+  ): Promise<number> {
+    // 确定时间范围
+    let startDate: Date;
+    let endDate: Date;
+    
+    if (month) {
+      // 指定了月份，获取该月的数据
+      startDate = new Date(year, month - 1, 1, 0, 0, 0);
+      endDate = new Date(year, month, 0, 23, 59, 59);
+    } else {
+      // 获取整年的数据
+      startDate = new Date(year, 0, 1, 0, 0, 0);
+      endDate = new Date(year, 11, 31, 23, 59, 59);
+    }
+
+    // 构建查询条件
+    const conditions = [
+      eq(transactions.accountId, accountId),
+      between(transactions.transactionDate, startDate, endDate)
+    ];
+ 
+    // 如果指定了交易类型，添加类型过滤
+    if (type) {
+      conditions.push(eq(transactions.type, type));
+    }
+
+    // 执行查询
+    const result = await this.db
+      .select({
+        total: sql<number>`TOTAL(${transactions.amount})`
+      })
+      .from(transactions)
+      .where(and(...conditions));
+      console.log('查询汇总结果:', result);
+
+    // 返回统计金额（如果没有数据返回0）
+    return result[0]?.total || 0;
+  }
+
   // 私有方法：应用交易对账户余额的影响
   private async _applyTransactionImpact(
     tx: any,

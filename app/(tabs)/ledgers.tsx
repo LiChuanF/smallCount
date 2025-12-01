@@ -179,7 +179,7 @@ export default function AccountsScreen() {
                 账户余额
               </Text>
               <Text
-                className={`text-xl font-bold ${
+                className={`text-xl text-text font-bold ${
                   activeAccount.balance !== null && activeAccount.balance < 0
                     ? "text-danger"
                     : "text-gray-900 dark:text-white"

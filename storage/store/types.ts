@@ -197,10 +197,18 @@ export interface StatsFilter {
   month: number;
 }
 
+// 对比数据接口
+export interface ComparisonData {
+  currentAmount: number;
+  compareAmount: number;
+  percentageChange: number;
+}
+
 // 统计状态接口
 export interface StatsState {
   filter: StatsFilter;
   chartData: StatsChartData;
+  comparisonData: ComparisonData | null;
   isLoading: boolean;
   error: string | null;
 }
@@ -212,6 +220,7 @@ export interface StatsActions {
   loadStatsDataByWeek: (accountId: string, year: number, month: number) => Promise<void>;
   loadStatsDataByMonth: (accountId: string, year: number) => Promise<void>;
   loadStatsDataByYear: (accountId: string, year: number) => Promise<void>;
+  loadComparisonData: (accountId: string, year: number, month?: number, type?: 'income' | 'expense') => Promise<void>;
   clearError: () => void;
 }
 

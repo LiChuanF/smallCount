@@ -13,7 +13,7 @@ export default function StatsScreen() {
   const [monthPickerVisible, setMonthPickerVisible] = React.useState(false);
 
   const { activeAccountId } = useDataStore((state) => state);
-  const { filter, chartData, isLoading, setFilter, loadStatsData } = useStatsStore();
+  const { filter, chartData, isLoading, setFilter, loadStatsData, comparisonData } = useStatsStore();
 
   // 转换索引和值
   const periodValues = ["week", "month"] as const;
@@ -126,7 +126,13 @@ export default function StatsScreen() {
             ¥{currentData.total || "0.00"}
           </Text>
           <View className="flex-row items-center bg-red-100 dark:bg-red-900/20 px-2 py-0.5 rounded text-xs">
-            <Text className="text-red-500 text-[10px] mr-1">▲ 12%</Text>
+            <Text className={`text-[10px] mr-1 ${comparisonData && comparisonData.percentageChange > 0 ? 'text-red-500' : 'text-green-500'}`}>
+              {comparisonData ? (
+                comparisonData.percentageChange > 0 ? 
+                  `▲ ${Math.abs(comparisonData.percentageChange).toFixed(2)}%` : 
+                  `▼ ${Math.abs(comparisonData.percentageChange).toFixed(2)}%`
+              ) : '▲ 0%'}
+            </Text>
             <Text className="text-gray-500 text-[10px]">
               {
                 filter.period === "week" ? "对比上月" : filter.period === "month" ? "对比上年" : ""

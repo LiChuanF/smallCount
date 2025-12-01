@@ -435,6 +435,106 @@ export const TransactionService = {
   },
 
   /**
+   * 获取某年或某月总支出或总收入
+   * @param accountId - 账户ID
+   * @param year - 年份
+   * @param month - 月份 (可选，不传则统计整年)
+   * @param type - 交易类型 ('income' 或 'expense')
+   * @returns 统计金额
+   */
+  async getTotalAmountByPeriod(
+    accountId: string,
+    year: number,
+    month?: number,
+    type?: 'income' | 'expense'
+  ): Promise<number> {
+    // 参数校验
+    if (!accountId) {
+      throw new Error('账户ID不能为空');
+    }
+    
+    if (year < 2000 || year > 2100) {
+      throw new Error('年份必须在2000-2100之间');
+    }
+    
+    if (month && (month < 1 || month > 12)) {
+      throw new Error('月份必须在1-12之间');
+    }
+
+    // 调用仓库层方法获取统计金额
+    return await transactionRepo.getTotalAmountByPeriod(accountId, year, month, type);
+  },
+
+  /**
+   * 获取同比/环比数据
+   * @param accountId - 账户ID
+   * @param year - 当前年份
+   * @param month - 当前月份 (可选)
+   * @param type - 交易类型 ('income' 或 'expense')
+   * @returns 包含当前金额、对比金额和变化百分比的对象
+   */
+  async getComparisonData(
+    accountId: string,
+    year: number,
+    month?: number,
+    type?: 'income' | 'expense'
+  ): Promise<{
+    currentAmount: number;
+    compareAmount: number;
+    percentageChange: number;
+  }> {
+    // 参数校验
+    if (!accountId) {
+      throw new Error('账户ID不能为空'); 
+    } 
+    
+    // 获取当前时期的金额
+    const currentAmount = await this.getTotalAmountByPeriod(accountId, year, month, type);
+    
+    // 确定对比时期的参数
+    let compareYear: number;
+    let compareMonth: number | undefined;
+    
+    if (month) {
+      // 有月份参数，表示月环比或年同比
+      if (year > 2000) {
+        // 月同比：去年同月
+        compareYear = year;
+        compareMonth = month  - 1;
+      } else {
+        throw new Error('年份必须大于2000才能进行同比比较');
+      }
+    } else {
+      // 没有月份参数，表示年同比
+      if (year > 2000) {
+        compareYear = year - 1;
+        compareMonth = undefined;
+      } else {
+        throw new Error('年份必须大于2000才能进行同比比较');
+      }
+    }
+    
+    // 获取对比时期的金额
+    const compareAmount = await this.getTotalAmountByPeriod(accountId, compareYear, compareMonth, type);
+    console.log('currentAmount:', currentAmount);
+    console.log('compareAmount:', compareAmount);
+    // 计算变化百分比
+    let percentageChange = 0;
+    if (compareAmount !== 0) {
+      percentageChange = ((currentAmount - compareAmount) / compareAmount) * 100;
+    } else if (currentAmount > 0) {
+      // 如果对比金额为0，而当前金额大于0，则变化率为100%
+      percentageChange = 100;
+    }
+    
+    return {
+      currentAmount,
+      compareAmount,
+      percentageChange
+    };
+  },
+
+  /**
    * 创建简化交易记录（用于UI界面快速提交）
    * @param transactionData - 交易数据
    * @returns 创建的交易对象

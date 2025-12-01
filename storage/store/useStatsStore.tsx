@@ -46,7 +46,7 @@ const initialState: StatsState = {
       },
     },
   },
-
+  comparisonData: null,
   isLoading: false,
   error: null,
 };
@@ -82,6 +82,14 @@ export const useStatsStore = createAppStore<StatsStore>((set, get) => ({
         );
       }
 
+      // 加载对比数据
+      await get().loadComparisonData(
+        accountId,
+        filter.year,
+        filter.period === "week" ? filter.month : undefined,
+        filter.type
+      );
+
       set({
         isLoading: false,
       });
@@ -89,6 +97,37 @@ export const useStatsStore = createAppStore<StatsStore>((set, get) => ({
       console.error("加载统计数据失败:", error);
       set({
         error: error instanceof Error ? error.message : "加载统计数据失败",
+        isLoading: false,
+      });
+    }
+  },
+
+  // 加载对比数据
+  loadComparisonData: async (
+    accountId: string,
+    year: number,
+    month?: number,
+    type?: "income" | "expense"
+  ) => {
+    set({ isLoading: true, error: null });
+
+    try {
+      console.log("加载对比数据参数:", accountId, year, month, type);
+      const comparisonData = await TransactionService.getComparisonData(
+        accountId,
+        year,
+        month,
+        type
+      );
+
+      set({
+        comparisonData,
+        isLoading: false,
+      });
+    } catch (error) {
+      console.error("加载对比数据失败:", error);
+      set({
+        error: error instanceof Error ? error.message : "加载对比数据失败",
         isLoading: false,
       });
     }
@@ -142,8 +181,6 @@ export const useStatsStore = createAppStore<StatsStore>((set, get) => ({
         accountId,
         year
       );
-      console.log("按年交易数据响应:", JSON.stringify(response));
-      
       // 处理月度统计数据
       const chartData = processMonthlyTransactions(response as any);
 
@@ -257,54 +294,62 @@ function processMonthlyTransactions(data: { months: any[] }): StatsChartData {
   // 检查数据是否有效
   if (data && Array.isArray(data.months)) {
     // 设置月度数据到chartData的xAxis和yAxis
-    chartData.expense.data.xAxis = data.months.map(month => `${month.month}月`);
-    chartData.expense.data.yAxis = data.months.map(month => month.expense);
-    chartData.income.data.xAxis = data.months.map(month => `${month.month}月`);
-    chartData.income.data.yAxis = data.months.map(month => month.income);
+    chartData.expense.data.xAxis = data.months.map(
+      (month) => `${month.month}月`
+    );
+    chartData.expense.data.yAxis = data.months.map((month) => month.expense);
+    chartData.income.data.xAxis = data.months.map(
+      (month) => `${month.month}月`
+    );
+    chartData.income.data.yAxis = data.months.map((month) => month.income);
 
     // 遍历所有月份数据，汇总标签统计
-    data.months.forEach(month => {
+    data.months.forEach((month) => {
       // 累计总收入和支出
       totalExpense = totalExpense.plus(new Big(month.expense));
       totalIncome = totalIncome.plus(new Big(month.income));
 
       // 处理标签统计数据
       if (Array.isArray(month.tagStats)) {
-        month.tagStats.forEach((tagStat: Tag & { amount: number; count: number }) => {
-          // 使用提供的type字段来判断收入或支出类型
-          const isIncome = tagStat.type === 'income';
-          
-          // 根据用户提供的示例数据，字段名应该是name、color、icon而不是tagName、tagColor、tagIcon
-          const tagName = tagStat.name || "未分类";
-          const tagColor = tagStat.color || "#666";
-          const tagIcon = tagStat.icon || "🏷️";
-          const tagAmount = new Big(tagStat.amount);
-          const tagCount = tagStat.count || 0;
+        month.tagStats.forEach(
+          (tagStat: Tag & { amount: number; count: number }) => {
+            // 使用提供的type字段来判断收入或支出类型
+            const isIncome = tagStat.type === "income";
 
-          if (isIncome) {
-            if (!incomeByTag[tagName]) {
-              incomeByTag[tagName] = {
-                amount: new Big(0),
-                count: 0,
-                color: tagColor,
-                icon: tagIcon,
-              };
+            // 根据用户提供的示例数据，字段名应该是name、color、icon而不是tagName、tagColor、tagIcon
+            const tagName = tagStat.name || "未分类";
+            const tagColor = tagStat.color || "#666";
+            const tagIcon = tagStat.icon || "🏷️";
+            const tagAmount = new Big(tagStat.amount);
+            const tagCount = tagStat.count || 0;
+
+            if (isIncome) {
+              if (!incomeByTag[tagName]) {
+                incomeByTag[tagName] = {
+                  amount: new Big(0),
+                  count: 0,
+                  color: tagColor,
+                  icon: tagIcon,
+                };
+              }
+              incomeByTag[tagName].amount =
+                incomeByTag[tagName].amount.plus(tagAmount);
+              incomeByTag[tagName].count += tagCount;
+            } else {
+              if (!expenseByTag[tagName]) {
+                expenseByTag[tagName] = {
+                  amount: new Big(0),
+                  count: 0,
+                  color: tagColor,
+                  icon: tagIcon,
+                };
+              }
+              expenseByTag[tagName].amount =
+                expenseByTag[tagName].amount.plus(tagAmount);
+              expenseByTag[tagName].count += tagCount;
             }
-            incomeByTag[tagName].amount = incomeByTag[tagName].amount.plus(tagAmount);
-            incomeByTag[tagName].count += tagCount;
-          } else {
-            if (!expenseByTag[tagName]) {
-              expenseByTag[tagName] = {
-                amount: new Big(0),
-                count: 0,
-                color: tagColor,
-                icon: tagIcon,
-              };
-            }
-            expenseByTag[tagName].amount = expenseByTag[tagName].amount.plus(tagAmount);
-            expenseByTag[tagName].count += tagCount;
           }
-        });
+        );
       }
     });
   }
