@@ -11,7 +11,7 @@ interface CategoryGridProps {
   selectedId: string;
   onSelect: (item: NewTag) => void;
   // 新增：用于更新父组件数据的回调
-  onUpdateCategories: (newCategories: Omit<NewTag, 'id' | 'accountIds' | 'createdAt'>[]) => void;
+  onUpdateCategories: (newCategories: NewTag[]) => void;
   // 新增：当前是支出还是收入，传给 Manager 用于新建
   currentType: NewTag["type"] & string; // 'expense' | 'income'
 }

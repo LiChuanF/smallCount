@@ -33,7 +33,7 @@ interface CategoryManageModalProps {
   onClose: () => void;
   categories: NewTag[];
   currentType: NewTag["type"] & string; // 'expense' | 'income'
-  onUpdateCategories: (newCategories: Omit<NewTag, 'id' | 'accountIds' | 'createdAt'>[]) => void;
+  onUpdateCategories: (newCategories: NewTag[]) => void;
 }
 
 // 预设的可选图标

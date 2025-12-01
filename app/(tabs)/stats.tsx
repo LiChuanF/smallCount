@@ -127,7 +127,11 @@ export default function StatsScreen() {
           </Text>
           <View className="flex-row items-center bg-red-100 dark:bg-red-900/20 px-2 py-0.5 rounded text-xs">
             <Text className="text-red-500 text-[10px] mr-1">▲ 12%</Text>
-            <Text className="text-gray-500 text-[10px]">对比上月</Text>
+            <Text className="text-gray-500 text-[10px]">
+              {
+                filter.period === "week" ? "对比上月" : filter.period === "month" ? "对比上年" : ""
+              }
+            </Text>
           </View>
         </View>
 
