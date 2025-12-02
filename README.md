@@ -3,7 +3,25 @@
 ![GitHub](https://img.shields.io/github/license/smallCount/smallCount)
 ![GitHub last commit](https://img.shields.io/github/last-commit/smallCount/smallCount)
 
-一个功能强大、界面美观的跨平台个人财务管理应用，基于Expo和React Native开发，支持iOS、Android和Web平台，帮助用户轻松管理个人财务，追踪收支，分析消费习惯。
+一个功能强大、界面美观的跨平台个人财务管理应用，基于Expo和React Native开发，支持iOS、Android平台，帮助用户轻松管理个人财务，追踪收支，分析消费习惯。
+
+## 📱 界面展示
+
+下面是应用的主要界面展示，展示了各项核心功能和美观的UI设计：
+
+### 主界面与交易管理
+
+| 主界面-明细列表 | 主界面-日历视图 | 图表统计 |
+|--------|----------|----------|
+| ![主界面-明细列表](demo/1.png) | ![主界面-日历视图](demo/2.png) | ![图表统计](demo/3.png) |
+
+### 统计分析与账户管理
+
+| 新增交易单 | 账户管理 | 设置中心 |
+|----------|----------|----------|
+| ![新增交易单](demo/4.png) | ![账户管理](demo/5.png) | ![设置中心](demo/6.png) |
+
+## 
 
 ## 🚀 功能特性
 
