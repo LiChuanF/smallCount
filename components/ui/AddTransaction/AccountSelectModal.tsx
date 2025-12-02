@@ -85,7 +85,7 @@ const AccountSelectModal: React.FC<AccountSelectModalProps> = ({
           {/* 账户信息 */}
           <View className="flex-1">
             {/* 账户名称 */}
-            <Text className={`text-base ${textColorClass}`}>
+            <Text className={`text-base text-text ${textColorClass}`}>
               {item.name}
             </Text>
             {/* 账户类型和余额 */}
