@@ -24,7 +24,7 @@ function SettingItem({
 }: SettingItemProps) {
   return (
     <Pressable
-      className="flex-row items-center justify-between p-4 active:bg-gray-50 dark:active:bg-neutral-800 transition-colors"
+      className="w-full flex-row items-center justify-between py-1 active:bg-gray-50 dark:active:bg-neutral-800 transition-colors"
       android_ripple={{ color: "#e5e5ea" }}
       onPress={() => {
         if (onPress) {
@@ -37,7 +37,12 @@ function SettingItem({
     >
       <View className="flex-row items-center">
         {icon ? (
-          <MaterialIcons name={icon} size={22} color="#6B7280" style={{ marginRight: 12 }} />
+          <MaterialIcons
+            name={icon}
+            size={22}
+            color="#6B7280"
+            style={{ marginRight: 12 }}
+          />
         ) : null}
         <Text className="text-base text-neutral-900 dark:text-neutral-100 font-medium">
           {label}
@@ -59,13 +64,13 @@ function ThemeColorSelector() {
   // Only show base colors (no dark variants needed for selection as they are handled by mode)
   // We map the base name to the color value
   const colorOptions = [
-    { key: 'default', color: '#10b981' }, // Green
-    { key: 'blue', color: '#3b82f6' },    // Blue
-    { key: 'purple', color: '#8b5cf6' },  // Purple
-    { key: 'orange', color: '#f59e0b' },  // Orange
+    { key: "default", color: "#10b981" }, // Green
+    { key: "blue", color: "#3b82f6" }, // Blue
+    { key: "purple", color: "#8b5cf6" }, // Purple
+    { key: "orange", color: "#f59e0b" }, // Orange
   ];
 
-  const currentBaseTheme = themeName.replace('_dark', '');
+  const currentBaseTheme = themeName.replace("_dark", "");
 
   return (
     <View className="flex-row gap-3">
@@ -77,11 +82,14 @@ function ThemeColorSelector() {
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               // If current theme is dark, switch to new color's dark mode
-              const isDark = themeName.includes('_dark');
-              setTheme(isDark ? `${opt.key}_dark` : opt.key as any);
+              const isDark = themeName.includes("_dark");
+              setTheme(isDark ? `${opt.key}_dark` : (opt.key as any));
             }}
-            className={`w-8 h-8 rounded-full items-center justify-center border-2 ${isActive ? 'border-gray-300 dark:border-neutral-500' : 'border-transparent'
-              }`}
+            className={`w-8 h-8 rounded-full items-center justify-center border-2 ${
+              isActive
+                ? "border-gray-300 dark:border-neutral-500"
+                : "border-transparent"
+            }`}
           >
             <View
               className="w-6 h-6 rounded-full"
@@ -97,10 +105,63 @@ function ThemeColorSelector() {
 export default function ProfilePage() {
   const { themeName, setTheme, isDarkMode } = useTheme();
 
+  const domainArr: {key: string, label: string, children: {key: string, label?: string, render: () => React.ReactNode}[]}[] = [
+    {
+      key: "appearance",
+      label: "外观设置",
+      children: [
+        { key: "theme", label: "主题色", render: () => <ThemeColorSelector /> },
+        {
+          key: "darkMode",
+          label: "暗黑模式",
+          render: () => (
+            <Switch
+              value={isDarkMode}
+              onValueChange={toggleThemeMode}
+              thumbColor={isDarkMode ? "#10b981" : undefined}
+            />
+          ),
+        },
+      ],
+    },
+    {
+      key: "other",
+      label: "其他设置",
+      children: [
+        {
+          key: "reset",
+          render: () => (
+            <SettingItem
+              label="多账本管理"
+              onPress={() => {}}
+              showArrow={true}
+            />
+          ),
+        },
+        {
+          key: "data",
+          render: () => (
+            <SettingItem label="数据管理" onPress={() => {}} showArrow={true} />
+          ),
+        },
+        {
+          key: "backup",
+          render: () => (
+            <SettingItem
+              label="备份与恢复"
+              onPress={() => {}}
+              showArrow={true}
+            />
+          ),
+        },
+      ],
+    },
+  ];
+
   const toggleThemeMode = (value: boolean) => {
     Haptics.selectionAsync();
-    const currentBase = themeName.replace('_dark', '');
-    setTheme(value ? `${currentBase}_dark` : currentBase as any);
+    const currentBase = themeName.replace("_dark", "");
+    setTheme(value ? `${currentBase}_dark` : (currentBase as any));
   };
 
   return (
@@ -120,66 +181,45 @@ export default function ProfilePage() {
 
           {/* Minimal Profile Layout */}
           <View className="items-center mb-10">
-            <View className="w-20 h-20 rounded-full bg-gray-200 dark:bg-neutral-800 items-center justify-center mb-4">
-              <Text className="text-2xl font-bold text-gray-600 dark:text-gray-300">M</Text>
+            <View className="w-20 h-20 rounded-full bg-primary items-center justify-center mb-4">
+              <Text className=" text-2xl font-bold text-gray-600 dark:text-gray-300">
+                M
+              </Text>
             </View>
             <Text className="text-xl font-semibold text-neutral-900 dark:text-white mb-1">
-              Mono记账用户
+              small记账
             </Text>
             <Text className="text-sm text-gray-500 dark:text-gray-400">
-              Mono v2.2.0
+              免费好用的小型记账APP
             </Text>
           </View>
 
-          {/* Settings Group 1: Appearance */}
-          <Text className="ml-4 mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">
-            外观设置
-          </Text>
-          <View className="bg-white dark:bg-neutral-900 rounded-2xl overflow-hidden mb-8 border border-gray-100 dark:border-neutral-800">
-            <View className="flex-row items-center justify-between p-4 border-b border-gray-100 dark:border-neutral-800">
-              <Text className="text-base text-neutral-900 dark:text-neutral-100 font-medium">
-                主题色
+          {domainArr.map((domain) => (
+            <View key={domain.key} className="mb-8">
+              <Text className="ml-4 mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">
+                {domain.label}
               </Text>
-              <ThemeColorSelector />
+              <View className="bg-card rounded-2xl overflow-hidden border border-border">
+                {domain.children.map((item) => (
+                  <View
+                    key={item.key}
+                    className={`flex-row items-center justify-between p-4 border-b border-border ${item.key === domain.children[domain.children.length - 1].key ? 'border-b-0' : ''}`}
+                  >
+                    {item?.label ? (
+                      <Text className="text-base text-neutral-900 dark:text-neutral-100 font-medium">
+                        {item.label}
+                      </Text>
+                    ) : (
+                      ""
+                    )}
+                    {item.render()}
+                  </View>
+                ))}
+              </View>
             </View>
+          ))}
 
-            <View className="flex-row items-center justify-between p-4">
-              <Text className="text-base text-neutral-900 dark:text-neutral-100 font-medium">
-                深色模式
-              </Text>
-              <Switch
-                value={isDarkMode}
-                onValueChange={toggleThemeMode}
-                trackColor={{ false: "#767577", true: "#10b981" }}
-                thumbColor={"#f4f3f4"}
-              />
-            </View>
-          </View>
-
-          {/* Settings Group 2: General */}
-          <Text className="ml-4 mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">
-            通用设置
-          </Text>
-          <View className="bg-white dark:bg-neutral-900 rounded-2xl overflow-hidden border border-gray-100 dark:border-neutral-800">
-            <SettingItem
-              label="多账本管理"
-              onPress={() => { }}
-              showArrow={true}
-            />
-            <View className="h-[1px] bg-gray-100 dark:bg-neutral-800 mx-4" />
-            <SettingItem
-              label="数据安全与备份"
-              onPress={() => { }}
-              showArrow={true}
-            />
-            <View className="h-[1px] bg-gray-100 dark:bg-neutral-800 mx-4" />
-            <SettingItem
-              label="分类管理"
-              onPress={() => { }}
-              showArrow={true}
-            />
-          </View>
-
+         
         </View>
       </ScrollView>
     </SafeAreaView>

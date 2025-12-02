@@ -62,7 +62,6 @@ const useDataStore = createAppStore<DataStore>((set, get) => ({
   initializeData: async () => {
     try {
       set({ isLoading: true, error: null });
-      console.log("开始初始化数据");
       // 加载当前用户
       await get().loadCurrentUser();
       await get().loadAccounts();
@@ -124,7 +123,6 @@ const useDataStore = createAppStore<DataStore>((set, get) => ({
         isActive: acc.id === accountId,
       }));
       const account = updatedAccounts.find((acc) => acc.id === accountId);
-      console.log("切换活跃账户为:", account);
       if (account) {
         // 调用API更新后端数据
         await AccountService.updateAccount(accountId, { isActive: true });
@@ -159,7 +157,6 @@ const useDataStore = createAppStore<DataStore>((set, get) => ({
 
   addAccount: async (accountData: AccountDataType) => {
     try {
-      console.log("新增用户是否直接设为激活:", accountData.isActive);
       // 直接将accountData作为参数传递给createNewAccount函数
       if (accountData.isActive) {
         // 先将当前活跃账户设为非活跃
@@ -256,7 +253,6 @@ const useDataStore = createAppStore<DataStore>((set, get) => ({
   },
 
   convertTransactionsForCalendar: async (transactions: Transaction[]) => {
-    if (transactions.length) {
       // 计算月度统计数据 (使用 big.js 避免浮点数精度问题)
       let totalIncome = new Big(0);
       let totalExpense = new Big(0);
@@ -304,7 +300,6 @@ const useDataStore = createAppStore<DataStore>((set, get) => ({
         }
       });
       set({ transactionsDataForCalendar: calendarData });
-    }
   },
 
   groupTransactionsByDate: async (transactions: Transaction[]) => {

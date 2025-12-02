@@ -127,7 +127,7 @@ export default function AccountsScreen() {
         </Text>
         <View className="mt-2 mb-2">
           <Text className="text-sm text-gray-500 dark:text-gray-400">
-            负债: {formatMoney(debtBalance)}
+            负债总额: {formatMoney(debtBalance)}
           </Text>
         </View>
       </View>

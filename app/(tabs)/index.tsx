@@ -225,10 +225,9 @@ export default function HomeScreen() {
             current={selectedDate.toISOString().split("T")[0]}
             transactionsData={transactionsDataForCalendar}
             onDayPress={(date) => {
-              console.log("选中日期:", date);
+              // console.log("选中日期:", date);
             }}
             onMonthChange={(date) => {
-              console.log("月份变化:", date);
               // 更新选中日期并重新获取数据
               setSelectedDate(new Date(date.timestamp));
               loadTransactions(activeAccountId!, date.year, date.month);
