@@ -307,6 +307,7 @@ export default function AccountsScreen() {
       >
         <Text className="text-primary font-bold text-base">+ 添加新账户</Text>
       </TouchableOpacity>
+      <View className="h-4"></View>
       {/* 新增/编辑账户弹窗 */}
       <AccountCreateOrEditModalWidget
         visible={isModalVisible}

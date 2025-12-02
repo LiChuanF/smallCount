@@ -3,7 +3,6 @@
 ## 基本要求
 
 - 新增代码需要兼容web、android、ios三端
-- 属性命名符合 antd 的 API 命名规则：https://github.com/ant-design/ant-design/wiki/API-Naming-rules
 
 ## smallCount 规范
 
