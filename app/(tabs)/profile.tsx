@@ -124,38 +124,38 @@ export default function ProfilePage() {
         },
       ],
     },
-    {
-      key: "other",
-      label: "其他设置",
-      children: [
-        {
-          key: "reset",
-          render: () => (
-            <SettingItem
-              label="多账本管理"
-              onPress={() => {}}
-              showArrow={true}
-            />
-          ),
-        },
-        {
-          key: "data",
-          render: () => (
-            <SettingItem label="数据管理" onPress={() => {}} showArrow={true} />
-          ),
-        },
-        {
-          key: "backup",
-          render: () => (
-            <SettingItem
-              label="备份与恢复"
-              onPress={() => {}}
-              showArrow={true}
-            />
-          ),
-        },
-      ],
-    },
+    // {
+    //   key: "other",
+    //   label: "其他设置",
+    //   children: [
+    //     {
+    //       key: "reset",
+    //       render: () => (
+    //         <SettingItem
+    //           label="多账本管理"
+    //           onPress={() => {}}
+    //           showArrow={true}
+    //         />
+    //       ),
+    //     },
+    //     {
+    //       key: "data",
+    //       render: () => (
+    //         <SettingItem label="数据管理" onPress={() => {}} showArrow={true} />
+    //       ),
+    //     },
+    //     {
+    //       key: "backup",
+    //       render: () => (
+    //         <SettingItem
+    //           label="备份与恢复"
+    //           onPress={() => {}}
+    //           showArrow={true}
+    //         />
+    //       ),
+    //     },
+    //   ],
+    // },
   ];
 
   const toggleThemeMode = (value: boolean) => {
