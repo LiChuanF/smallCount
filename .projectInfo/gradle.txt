@@ -1,0 +1,1 @@
+distributionUrl=https://mirrors.aliyun.com/github/releases/gradle/gradle-distributions/v8.14.3/gradle-8.14.3-bin.zip
