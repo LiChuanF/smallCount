@@ -1,6 +1,6 @@
 import Big from "big.js";
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { and, between, count, desc, eq, sql } from "drizzle-orm";
+import { and, between, count, desc, eq, inArray, sql } from "drizzle-orm";
 import {
   PaginatedResult,
   PaginationParams,
@@ -15,6 +15,67 @@ export type NewTransaction = InferInsertModel<typeof transactions>;
 export class TransactionRepository extends BaseRepository<Transaction> {
   constructor() {
     super(transactions);
+  }
+
+  // 私有方法：应用交易对账户余额的影响
+  private async _applyTransactionImpact(
+    tx: any,
+    transaction: Transaction
+  ): Promise<void> {
+    const account = await tx.query.accounts.findFirst({
+      where: eq(accounts.id, transaction.accountId),
+    });
+
+    if (account) {
+      const currentBalance = new Big(account.balance || 0);
+      const transactionAmount = new Big(transaction.amount);
+      let newBalance: Big;
+
+      if (transaction.type === "expense") {
+        newBalance = currentBalance.minus(transactionAmount);
+      } else if (transaction.type === "income") {
+        newBalance = currentBalance.plus(transactionAmount);
+      } else {
+        // 转账类型需要更复杂的处理，这里暂时不处理
+        return;
+      }
+
+      await tx
+        .update(accounts)
+        .set({ balance: newBalance.toNumber() })
+        .where(eq(accounts.id, transaction.accountId));
+    }
+  }
+
+  // 私有方法：恢复交易对账户余额的影响
+  private async _reverseTransactionImpact(
+    tx: any,
+    transaction: Transaction
+  ): Promise<void> {
+    const account = await tx.query.accounts.findFirst({
+      where: eq(accounts.id, transaction.accountId),
+    });
+
+    if (account) {
+      const currentBalance = new Big(account.balance || 0);
+      const transactionAmount = new Big(transaction.amount);
+      let newBalance: Big;
+
+      // 反向操作：支出变收入，收入变支出
+      if (transaction.type === "expense") {
+        newBalance = currentBalance.plus(transactionAmount);
+      } else if (transaction.type === "income") {
+        newBalance = currentBalance.minus(transactionAmount);
+      } else {
+        // 转账类型需要更复杂的处理，这里暂时不处理
+        return;
+      }
+
+      await tx
+        .update(accounts)
+        .set({ balance: newBalance.toNumber() })
+        .where(eq(accounts.id, transaction.accountId));
+    }
   }
 
   // 创建交易 (需要事务处理：更新余额)
@@ -506,64 +567,35 @@ export class TransactionRepository extends BaseRepository<Transaction> {
     return result[0]?.total || 0;
   }
 
-  // 私有方法：应用交易对账户余额的影响
-  private async _applyTransactionImpact(
-    tx: any,
-    transaction: Transaction
-  ): Promise<void> {
-    const account = await tx.query.accounts.findFirst({
-      where: eq(accounts.id, transaction.accountId),
-    });
-
-    if (account) {
-      const currentBalance = new Big(account.balance || 0);
-      const transactionAmount = new Big(transaction.amount);
-      let newBalance: Big;
-
-      if (transaction.type === "expense") {
-        newBalance = currentBalance.minus(transactionAmount);
-      } else if (transaction.type === "income") {
-        newBalance = currentBalance.plus(transactionAmount);
-      } else {
-        // 转账类型需要更复杂的处理，这里暂时不处理
-        return;
-      }
-
-      await tx
-        .update(accounts)
-        .set({ balance: newBalance.toNumber() })
-        .where(eq(accounts.id, transaction.accountId));
-    }
+  /**
+   * 根据筛选条件查询交易记录
+   * @param accountIds - 账户ID列表
+   * @param tagIds - 标签ID列表
+   * @param paymentMethodIds - 支付方式ID列表
+   * @param startDate - 开始日期
+   * @param endDate - 结束日期
+   * @returns 符合条件的交易记录列表
+   */
+  async getTransactionsByFilters(
+    accountIds: string[],
+    tagIds: string[],
+    paymentMethodIds: string[],
+    startDate: Date,
+    endDate: Date
+  ) {
+    // 构建查询条件
+    const conditions = [
+      inArray(transactions.accountId, accountIds),
+      inArray(transactions.tagId, tagIds),
+      inArray(transactions.paymentMethodId, paymentMethodIds),
+      between(transactions.transactionDate, startDate, endDate)
+    ];
+     // 执行查询 
+    const result = await this.db
+      .select()
+      .from(transactions)
+      .where(and(...conditions));
+    return result;
   }
-
-  // 私有方法：恢复交易对账户余额的影响
-  private async _reverseTransactionImpact(
-    tx: any,
-    transaction: Transaction
-  ): Promise<void> {
-    const account = await tx.query.accounts.findFirst({
-      where: eq(accounts.id, transaction.accountId),
-    });
-
-    if (account) {
-      const currentBalance = new Big(account.balance || 0);
-      const transactionAmount = new Big(transaction.amount);
-      let newBalance: Big;
-
-      // 反向操作：支出变收入，收入变支出
-      if (transaction.type === "expense") {
-        newBalance = currentBalance.plus(transactionAmount);
-      } else if (transaction.type === "income") {
-        newBalance = currentBalance.minus(transactionAmount);
-      } else {
-        // 转账类型需要更复杂的处理，这里暂时不处理
-        return;
-      }
-
-      await tx
-        .update(accounts)
-        .set({ balance: newBalance.toNumber() })
-        .where(eq(accounts.id, transaction.accountId));
-    }
-  }
+  
 }

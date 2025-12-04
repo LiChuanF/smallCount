@@ -93,4 +93,11 @@ export class TagRepository extends BaseRepository<Tag> {
     }));
     return await this.db.insert(tags).values(tagsWithId).returning();
   }
+
+  // 获取默认标签
+  async getDefault(): Promise<Tag | undefined> {
+    return await this.db.query.tags.findFirst({
+      where: eq(tags.isDefault, true),
+    });
+  }
 }

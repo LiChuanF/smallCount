@@ -2,15 +2,21 @@ import AccountSelectModal from "@/components/ui/AddTransaction/AccountSelectModa
 import CategoryManageModal from "@/components/ui/AddTransaction/CategoryManageModal";
 import PaymentMethodModal from "@/components/ui/AddTransaction/PaymentMethodModal";
 import MonthPickerModal from "@/components/widgets/MonthSelect";
+import { APP_NAME, GITHUB_LINK } from "@/constants/data";
 import { useTheme } from "@/context/ThemeContext";
 import { Account } from "@/db/repositories/AccountRepository";
 import { PaymentMethod } from "@/db/repositories/PaymentMethodRepository";
 import { NewTag } from "@/db/repositories/TagRepository";
+import {
+  TransactionService,
+  TransactionWithTagAndPaymentMethod,
+} from "@/db/services/TransactionService";
 import useDataStore from "@/storage/store/useDataStore";
+import { exportDataToXlsx } from "@/utils/utils";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -21,6 +27,7 @@ type SettingItemProps = {
   onPress?: () => void;
   showArrow?: boolean;
   trailing?: React.ReactNode;
+  bottomBorder?: boolean;
 };
 
 function SettingItem({
@@ -30,11 +37,12 @@ function SettingItem({
   onPress,
   showArrow = true,
   trailing,
+  bottomBorder = true,
 }: SettingItemProps) {
-    const { theme } = useTheme();
+  const { theme } = useTheme();
   return (
     <Pressable
-      className="flex-row items-center justify-between py-4 px-4 active:bg-gray-50 dark:active:bg-neutral-800 transition-colors"
+      className={`flex-row items-center justify-between bg-card py-4 px-4  transition-colors ${bottomBorder ? "border-b border-b-gray-200 dark:border-b-neutral-800" : ""}`}
       android_ripple={{ color: "#e5e5ea" }}
       onPress={() => {
         if (onPress) {
@@ -46,11 +54,7 @@ function SettingItem({
       <View className="flex-row items-center flex-1">
         {icon ? (
           <View className="w-8 h-8 rounded-lg items-center justify-center mr-3 bg-gray-100 dark:bg-neutral-800">
-            <MaterialIcons
-              name={icon}
-              size={18}
-              color={theme.colors.primary}
-            />
+            <MaterialIcons name={icon} size={18} color={theme.colors.primary} />
           </View>
         ) : null}
         <Text className="text-base text-neutral-900 dark:text-neutral-100 font-medium">
@@ -73,61 +77,128 @@ function SettingItem({
 }
 
 export default function DataExportPage() {
-  const { isDarkMode } = useTheme();
+  const {
+    activeAccount,
+    tags: allTags,
+    paymentMethods: allPaymentMethods,
+  } = useDataStore();
   const { accounts, paymentMethods, tags } = useDataStore();
-  const [dateRange, setDateRange] = useState("本月");
-  const [accountSource, setAccountSource] = useState("全部账户");
-  const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
-  const [selectedTags, setSelectedTags] = useState<NewTag[]>([]);
-  const [exportFormat, setExportFormat] = useState("Excel 表格 (.xlsx)");
-  
-  // 新增：MonthSelect组件相关状态
   const [showMonthPicker, setShowMonthPicker] = useState(false);
-  const [startYear, setStartYear] = useState(new Date().getFullYear());
-  const [startMonth, setStartMonth] = useState(new Date().getMonth() + 1);
-  const [endYear, setEndYear] = useState(new Date().getFullYear());
-  const [endMonth, setEndMonth] = useState(new Date().getMonth() + 1);
-  
-  // 新增：AccountSelectModal组件相关状态
+  const currentDate = new Date();
+  const [startYear, setStartYear] = useState(
+    currentDate.getMonth() <= 2
+      ? currentDate.getFullYear() - 1
+      : currentDate.getFullYear()
+  );
+  const [startMonth, setStartMonth] = useState(
+    currentDate.getMonth() <= 2
+      ? currentDate.getMonth() + 10
+      : currentDate.getMonth() - 2
+  );
+  const [endYear, setEndYear] = useState(currentDate.getFullYear());
+  const [endMonth, setEndMonth] = useState(currentDate.getMonth() + 1);
   const [showAccountPicker, setShowAccountPicker] = useState(false);
   const [selectedAccounts, setSelectedAccounts] = useState<Account[]>([]);
-  
-  // 新增：PaymentMethodModal组件相关状态
   const [showPaymentPicker, setShowPaymentPicker] = useState(false);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
-  const [selectedPaymentMethods, setSelectedPaymentMethods] = useState<PaymentMethod[]>([]);
-  
-  // 新增：CategoryManageModal组件相关状态
+  const [selectedPaymentMethods, setSelectedPaymentMethods] = useState<
+    PaymentMethod[]
+  >([]);
   const [showTagPicker, setShowTagPicker] = useState(false);
-  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [selectedTags, setSelectedTags] = useState<NewTag[]>([]);
 
-  const handleExport = () => {
+  useEffect(() => {
+    if (activeAccount) {
+      setSelectedAccounts([activeAccount]);
+    }
+    setSelectedTags(allTags);
+    setSelectedPaymentMethods(allPaymentMethods);
+  }, [activeAccount]);
+
+  const handleExport = async () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    // 这里实现导出逻辑
-    console.log("导出数据", {
-      dateRange,
-      accountSource,
-      selectedAccount,
-      selectedTags,
-      exportFormat,
-      startYear,
-      startMonth,
-      endYear,
-      endMonth,
+
+    // 计算结束月份的最后一天
+    const lastDayOfEndMonth = new Date(endYear, endMonth, 0);
+    console.log("计算得到的结束日期:", lastDayOfEndMonth);
+
+    // 获取数据库中的数据
+    const transactions = await TransactionService.getTransactionsByFilters(
       selectedAccounts,
-      selectedPaymentMethod,
+      selectedTags,
       selectedPaymentMethods,
-      selectedTagIds,
+      new Date(`${startYear}-${startMonth}-01`),
+      lastDayOfEndMonth
+    );
+
+    console.log("从数据库获取的交易记录:", JSON.stringify(transactions));
+
+    // 按账户分组交易数据
+    const transactionsByAccount: Record<
+      string,
+      { account: Account; transactions: TransactionWithTagAndPaymentMethod[] }
+    > = {};
+
+    // 初始化分组对象，为每个选中的账户创建空数组
+    selectedAccounts.forEach((account) => {
+      transactionsByAccount[account.id] = {
+        account,
+        transactions: [],
+      };
     });
+
+    // 将交易数据按账户分组
+    transactions.forEach((transaction) => {
+      if (
+        transaction.accountId &&
+        transactionsByAccount[transaction.accountId]
+      ) {
+        transactionsByAccount[transaction.accountId].transactions.push(
+          transaction
+        );
+      }
+    });
+
+    // 按交易日期排序每个账户的交易记录
+    Object.keys(transactionsByAccount).forEach((accountId) => {
+      transactionsByAccount[accountId].transactions.sort(
+        (a, b) =>
+          new Date(b.transactionDate).getTime() -
+          new Date(a.transactionDate).getTime()
+      );
+    });
+
+    console.log(
+      "按账户分组后的交易数据:",
+      JSON.stringify(transactionsByAccount)
+    );
+
+    // 调用导出函数
+    await exportDataToXlsx(transactionsByAccount, [
+      [`感谢使用${APP_NAME}，如果APP对你有帮助，欢迎给个star：${GITHUB_LINK}`],
+      [
+        `导出时间: ${formatDateRange(startYear, startMonth, endYear, endMonth)}`,
+      ],
+      [
+        `导出账户: ${selectedAccounts.map((account) => account.name).join("、")}`,
+      ],
+      [`导出分类: ${selectedTags.map((tag) => tag.name).join("、")}`],
+      [
+        `导出支付方式: ${selectedPaymentMethods.map((method) => method.name).join("、")}`,
+      ],
+    ]);
   };
-  
-  
+
   // 格式化日期范围显示
-  const formatDateRange = (startYear: number, startMonth: number, endYear: number, endMonth: number) => {
+  const formatDateRange = (
+    startYear: number,
+    startMonth: number,
+    endYear: number,
+    endMonth: number
+  ) => {
     if (startYear === endYear && startMonth === endMonth) {
       return `${startYear}年${startMonth}月`;
     }
-    return `${startYear}-${startMonth.toString().padStart(2, '0')} 至 ${endYear}-${endMonth.toString().padStart(2, '0')}`;
+    return `${startYear}-${startMonth.toString().padStart(2, "0")} 至 ${endYear}-${endMonth.toString().padStart(2, "0")}`;
   };
 
   return (
@@ -160,13 +231,18 @@ export default function DataExportPage() {
               <Text className="text-sm font-bold text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wide">
                 筛选条件
               </Text>
-              
+
               <View className="bg-card rounded-2xl overflow-hidden border border-border">
                 {/* Date Range */}
                 <SettingItem
                   icon="event"
                   label="日期范围"
-                  value={dateRange}
+                  value={formatDateRange(
+                    startYear,
+                    startMonth,
+                    endYear,
+                    endMonth
+                  )}
                   onPress={() => {
                     setShowMonthPicker(true);
                   }}
@@ -176,7 +252,11 @@ export default function DataExportPage() {
                 <SettingItem
                   icon="account-balance-wallet"
                   label="账户来源"
-                  value={selectedAccounts.length > 0 ? `已选 ${selectedAccounts.length} 项` : accountSource}
+                  value={
+                    selectedAccounts.length > 0
+                      ? `已选 ${selectedAccounts.length} 项`
+                      : "不限"
+                  }
                   onPress={() => {
                     setShowAccountPicker(true);
                   }}
@@ -186,7 +266,11 @@ export default function DataExportPage() {
                 <SettingItem
                   icon="local-offer"
                   label="消费标签"
-                  value={selectedTags.length > 0 ? `已选 ${selectedTags.length} 个` : "不限"}
+                  value={
+                    selectedTags.length > 0
+                      ? `已选 ${selectedTags.length} 个`
+                      : "不限"
+                  }
                   onPress={() => {
                     setShowTagPicker(true);
                   }}
@@ -196,7 +280,12 @@ export default function DataExportPage() {
                 <SettingItem
                   icon="apps"
                   label="支付方式"
-                  value={selectedPaymentMethods.length > 0 ? `已选 ${selectedPaymentMethods.length} 项` : '不限'}
+                  value={
+                    selectedPaymentMethods.length > 0
+                      ? `已选 ${selectedPaymentMethods.length} 项`
+                      : "不限"
+                  }
+                  bottomBorder={false}
                   onPress={() => {
                     setShowPaymentPicker(true);
                   }}
@@ -209,7 +298,7 @@ export default function DataExportPage() {
               <Text className="text-sm font-bold text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wide">
                 文件格式
               </Text>
-              
+
               <View className="bg-card rounded-2xl overflow-hidden border border-border">
                 <SettingItem
                   icon="description"
@@ -219,6 +308,7 @@ export default function DataExportPage() {
                       <MaterialIcons name="check" size={14} color="white" />
                     </View>
                   }
+                  bottomBorder={false}
                   onPress={() => {
                     // 这里可以添加格式选择逻辑
                     console.log("选择文件格式");
@@ -238,14 +328,17 @@ export default function DataExportPage() {
             className="bg-primary rounded-2xl py-4 items-center justify-center shadow-sm flex-row"
             onPress={handleExport}
           >
-            <MaterialIcons name="download" size={20} color="white" style={{ marginRight: 8 }} />
-            <Text className="text-white font-semibold text-base">
-              确认导出
-            </Text>
+            <MaterialIcons
+              name="download"
+              size={20}
+              color="white"
+              style={{ marginRight: 8 }}
+            />
+            <Text className="text-white font-semibold text-base">确认导出</Text>
           </Pressable>
         </View>
       </View>
-      
+
       {/* MonthPicker Modal */}
       <MonthPickerModal
         visible={showMonthPicker}
@@ -260,17 +353,16 @@ export default function DataExportPage() {
           setStartMonth(startMonth);
           setEndYear(endYear);
           setEndMonth(endMonth);
-          setDateRange(formatDateRange(startYear, startMonth, endYear, endMonth));
           setShowMonthPicker(false);
         }}
       />
-      
+
       {/* AccountSelect Modal */}
       <AccountSelectModal
         visible={showAccountPicker}
         onClose={() => setShowAccountPicker(false)}
         enableMultipleSelection={true}
-        selectedIds={selectedAccounts.map(account => account.id)}
+        selectedIds={selectedAccounts.map((account) => account.id)}
         onMultipleSelect={(accounts) => {
           setSelectedAccounts(accounts);
           setShowAccountPicker(false);
@@ -279,13 +371,13 @@ export default function DataExportPage() {
         confirmButtonText="确定选择"
         maxSelection={5}
       />
-      
+
       {/* PaymentMethod Modal */}
       <PaymentMethodModal
         visible={showPaymentPicker}
         onClose={() => setShowPaymentPicker(false)}
         enableMultipleSelection={true}
-        selectedIds={selectedPaymentMethods.map(method => method.id)}
+        selectedIds={selectedPaymentMethods.map((method) => method.id)}
         onMultipleSelect={(methods) => {
           setSelectedPaymentMethods(methods);
           setShowPaymentPicker(false);
@@ -293,7 +385,7 @@ export default function DataExportPage() {
         data={paymentMethods}
         confirmButtonText="确定选择"
       />
-      
+
       {/* CategoryManage Modal */}
       <CategoryManageModal
         visible={showTagPicker}
@@ -303,11 +395,12 @@ export default function DataExportPage() {
         onUpdateCategories={() => {}} // 在选择模式下不需要更新分类
         enableSelection={true}
         selectionMode="multiple"
-        selectedIds={selectedTagIds}
+        selectedIds={selectedTags.map((tag) => tag.id)}
         onSelectionChange={(tagIds) => {
-          setSelectedTagIds(tagIds);
           // 根据选中的ID获取完整的标签对象
-          const selectedTagObjects = tags.filter(tag => tagIds.includes(tag.id));
+          const selectedTagObjects = tags.filter((tag) =>
+            tagIds.includes(tag.id)
+          );
           setSelectedTags(selectedTagObjects);
         }}
         confirmButtonText="确定"

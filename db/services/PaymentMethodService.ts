@@ -311,5 +311,10 @@ export const PaymentMethodService = {
         }
 
         return results;
-    }
+    },
+
+    // 通过名称获取支付方式
+    async findByName(name: string) {
+        return await paymentMethodRepo.findByName(name);
+    },
 };

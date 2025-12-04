@@ -229,5 +229,14 @@ export const TagService = {
     // 目前先返回所有标签，后续可以添加使用频率统计
     const allTags = await tagRepo.findAll();
     return allTags.slice(0, limit);
-  }
+  },
+  
+  /**
+   * 通过名称获取标签
+   * @param name - 标签名称
+   * @returns 匹配的标签（如果存在）
+   */
+  async findByName(name: string) {
+    return await tagRepo.findByName(name);
+  },
 };

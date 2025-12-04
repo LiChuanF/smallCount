@@ -1,6 +1,6 @@
-import { DEFAULT_TAGS, PAYMENT_METHODS } from "@/constants/data";
+import { APP_NAME, DEFAULT_TAGS, PAYMENT_METHODS } from "@/constants/data";
 import useDataStore from "@/storage/store/useDataStore";
-import { AsyncQueue } from "@/utils/utils";
+import { AsyncQueue, exportDataToXlsx } from "@/utils/utils";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native"; // 或者使用 expo-router
 import { Buffer } from "buffer";
@@ -12,6 +12,22 @@ import React, { useState } from "react";
 import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as XLSX from "xlsx";
+
+const IMPORT_SOURCE_TYPE = {
+  zfb: "zfb",
+  wx: "wx",
+  general: "general",
+};
+
+const GENERAL_HEADER_NAME_MAP: any = {
+  日期: "date",
+  类型: "type",
+  金额: "amount",
+  描述: "goodDesc",
+  分类: "tag",
+  支付方式: "paymentMethod",
+  备注: "note",
+};
 
 const ZFB_HEADER_NAME_MAP: any = {
   交易时间: "date",
@@ -125,6 +141,81 @@ export default function ImportScreen() {
     (pm) => pm.name === PAYMENT_METHODS[0].name
   )!.id;
 
+  // 下载模板函数
+  const handleDownloadTemplate = async () => {
+    try {
+      // 创建模板数据
+      const templateData = {
+        "template-account": {
+          account: { id: "template-account", name: "模板账户" },
+          transactions: [
+            {
+              id: "template-1",
+              type: "expense",
+              amount: 50.00,
+              transactionDate: new Date().toISOString().split("T")[0],
+              description: "示例支出记录",
+              notes: "这是支出记录的示例",
+              tagId: null,
+              paymentMethodId: null,
+              accountId: "template-account",
+              transferAccountId: null,
+              location: null,
+              receiptImageUrl: null,
+              isRecurring: false,
+              recurringRule: null,
+              isConfirmed: true,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              tag: { name: DEFAULT_TAGS.expenses[0].name, type: "expense", color: DEFAULT_TAGS.expenses[0].color, icon: DEFAULT_TAGS.expenses[0].icon, isDefault: false },
+              paymentMethod: { name: PAYMENT_METHODS[1].name, icon: PAYMENT_METHODS[1].icon, isDefault: false }
+            },
+            {
+              id: "template-2",
+              type: "income",
+              amount: 5000.00,
+              transactionDate: new Date().toISOString().split("T")[0],
+              description: "示例收入记录",
+              notes: "这是收入记录的示例",
+              tagId: null,
+              paymentMethodId: null,
+              accountId: "template-account",
+              transferAccountId: null,
+              location: null,
+              receiptImageUrl: null,
+              isRecurring: false,
+              recurringRule: null,
+              isConfirmed: true,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              tag: { name: DEFAULT_TAGS.incomes[0].name, type: "income", color: DEFAULT_TAGS.incomes[0].color, icon: DEFAULT_TAGS.incomes[0].icon, isDefault: false },
+              paymentMethod: { name: PAYMENT_METHODS[1].name, icon: PAYMENT_METHODS[1].icon, isDefault: false }
+            }
+          ]
+        }
+      };
+
+      // 添加模板说明信息
+      const templateInfo = [
+        ["使用说明："],
+        ["1. 请按照模板格式填写您的账单数据"],
+        ["2. 日期格式：YYYY-MM-DD 或 YYYY/MM/DD"],
+        ["3. 类型：收入 或 支出"],
+        ["4. 金额：请填写数字，支持小数点后两位"],
+        ["5. 分类和支付方式请填写文本，系统会自动匹配，注意：名称需要和系统中的名称一致，否则会使用其他分类或其他支付方式"],
+        [],
+        ["日期", "类型", "金额", "描述", "分类", "支付方式", "备注"]
+      ];
+
+      // 调用导出函数
+      await exportDataToXlsx(templateData as any, templateInfo, `${APP_NAME}_导入模板.xlsx`);
+      
+    } catch (error) {
+      console.error("下载模板失败:", error);
+      Alert.alert("下载失败", "模板下载失败，请稍后重试");
+    }
+  };
+
   const processImportData = async (jsonData: any[], sourceType: string) => {
     const queue = new AsyncQueue(3);
     // 这里可以根据不同的来源类型进行不同的处理
@@ -133,13 +224,7 @@ export default function ImportScreen() {
 
     // 示例：将数据转换为应用需要的格式
     // 实际应用中，这里应该调用数据库服务来保存数据
-
-    if (sourceType === "zfb") {
-      // 处理支付宝数据
-      console.log(`开始处理支付宝数据，共${jsonData.length}条`);
-
-      // 支付宝数据已经在handlePickDocument中转换好了，直接使用
-      const transactionsData = jsonData;
+    const transactionsData = jsonData;
 
       // 使用队列分批处理数据，每批最多500条
       const batchSize = 500;
@@ -149,11 +234,24 @@ export default function ImportScreen() {
       let errorCount = 0;
 
       // 创建进度提示
-      const progressAlert = Alert.alert(
+      Alert.alert(
         "导入中",
-        `正在导入支付宝账单数据... (0/${totalBatches})`,
+        `正在导入${sourceType === IMPORT_SOURCE_TYPE.zfb ? "支付宝" : sourceType === IMPORT_SOURCE_TYPE.wx ? "微信" : "通用"}账单数据... (0/${totalBatches})`,
         []
       );
+
+      if(sourceType === IMPORT_SOURCE_TYPE.general) {
+        // 通用账单需要特殊处理
+        jsonData.forEach((item) => {
+          if(item.type === 'income') {
+            item.tagId = tags.find((tag) => tag.name === item.tag)?.id || tagIncomeId;
+            item.paymentMethodId = paymentZFBMethodId;
+          } else if(item.type === 'expense') {
+            item.tagId = tags.find((tag) => tag.name === item.tag)?.id || tagExpensesId;
+            item.paymentMethodId = paymentWXMethodId;
+          }
+        });
+      }
 
       // 分批处理数据
       for (let i = 0; i < transactionsData.length; i += batchSize) {
@@ -197,82 +295,7 @@ export default function ImportScreen() {
         `成功导入 ${successCount} 条记录，失败 ${errorCount} 条记录`,
         [{ text: "确定", onPress: () => {} }]
       );
-      return;
-    } else if (sourceType === "wx") {
-      // 处理微信数据
-      console.log(`开始处理微信数据，共${jsonData.length}条`);
 
-      // 微信数据已经在handlePickDocument中转换好了，直接使用
-      const transactionsData = jsonData;
-
-      // 使用队列分批处理数据，每批最多500条
-      const batchSize = 500;
-      const totalBatches = Math.ceil(transactionsData.length / batchSize);
-      let processedBatches = 0;
-      let successCount = 0;
-      let errorCount = 0;
-
-      // 创建进度提示
-      const progressAlert = Alert.alert(
-        "导入中",
-        `正在导入微信账单数据... (0/${totalBatches})`,
-        []
-      );
-
-      // 分批处理数据
-      for (let i = 0; i < transactionsData.length; i += batchSize) {
-        const batch = transactionsData.slice(i, i + batchSize);
-
-        // 添加到队列
-        queue.add(
-          async () => {
-            try {
-              await addBatchTransactions(batch);
-              successCount += batch.length;
-              console.log(
-                `成功导入批次 ${processedBatches + 1}/${totalBatches}，共 ${batch.length} 条记录`
-              );
-              return { success: true, count: batch.length };
-            } catch (error) {
-              errorCount += batch.length;
-              console.error(`批次 ${processedBatches + 1} 导入失败:`, error);
-              throw error;
-            }
-          },
-          {
-            onResolve: () => {
-              processedBatches++;
-              console.log(`批次 ${processedBatches}/${totalBatches} 处理完成`);
-            },
-            onReject: (error) => {
-              processedBatches++;
-              console.error(`批次 ${processedBatches} 处理失败:`, error);
-            },
-          }
-        );
-      }
-
-      // 等待所有批次处理完成
-      await queue.waitForEmpty();
-
-      // 显示导入结果
-      Alert.alert(
-        "导入完成",
-        `成功导入 ${successCount} 条记录，失败 ${errorCount} 条记录`,
-        [{ text: "确定", onPress: () => {} }]
-      );
-      return;
-    } else {
-      Alert.alert("导入失败", `不支持${sourceType}账单数据导入`, [
-        { text: "确定", onPress: () => {} },
-      ]);
-    }
-
-    Alert.alert(
-      "导入成功",
-      `已成功导入${jsonData.length}条${sourceType}账单数据`,
-      [{ text: "确定", onPress: () => {} }]
-    );
   };
   const handlePickDocument = async (sourceType: string) => {
     try {
@@ -302,11 +325,10 @@ export default function ImportScreen() {
         encoding: EncodingType.Base64,
       });
 
-      let workbook;
       const isCSV = file.name.toLowerCase().endsWith(".csv");
       const isXLSX = file.name.toLowerCase().endsWith(".xlsx");
-    // TODO: 这里的判断需要优化，zfb账单文件不一定只有csv格式，微信账单也不一定只有xlsx格式
-      if (sourceType === "zfb" && !isCSV) {
+      // TODO: 这里的判断需要优化，zfb账单文件不一定只有csv格式，微信账单也不一定只有xlsx格式
+      if (sourceType === IMPORT_SOURCE_TYPE.zfb && !isCSV) {
         Alert.alert(
           "提示",
           "请上传正确的支付宝账单，文件格式为 CSV，且文件内容需包含`支付宝支付科技有限公司  电子客户回单`的字符串",
@@ -315,7 +337,7 @@ export default function ImportScreen() {
         return;
       }
 
-      if (sourceType === "wx" && !isXLSX && !isCSV) {
+      if (sourceType === IMPORT_SOURCE_TYPE.wx && !isXLSX && !isCSV) {
         Alert.alert(
           "提示",
           "请上传正确的微信账单，文件格式为 XLSX 或 CSV，且文件内容需包含`微信支付账单明细列表`的字符串",
@@ -323,8 +345,10 @@ export default function ImportScreen() {
         );
         return;
       }
+      let workbook;
+
       // 【关键修改 2】zfb csv文件 手动解码逻辑
-      if (sourceType === "zfb") {
+      if (sourceType === IMPORT_SOURCE_TYPE.zfb) {
         try {
           // A. 将 Base64 还原为二进制 Buffer
           const buffer = Buffer.from(base64Content, "base64");
@@ -344,8 +368,13 @@ export default function ImportScreen() {
             type: "base64",
           });
         }
-      } else {
+      } else if (sourceType === "wx") {
         // Excel (.xlsx) 本身就是 zip 结构，不需要转码，直接读 Base64
+        workbook = XLSX.read(base64Content, {
+          type: "base64",
+        });
+      } else {
+        // 其他文件类型，默认读取 Base64
         workbook = XLSX.read(base64Content, {
           type: "base64",
         });
@@ -364,7 +393,7 @@ export default function ImportScreen() {
       // 定位表头前的第一行 (根据不同的来源类型使用不同的标识)
       let headerRowIndex = 0;
 
-      if (sourceType === "zfb") {
+      if (sourceType === IMPORT_SOURCE_TYPE.zfb) {
         // 支付宝账单处理
         for (let i = 0; i < rawArray.length; i++) {
           const rowStr = JSON.stringify(rawArray[i]);
@@ -377,11 +406,20 @@ export default function ImportScreen() {
             break;
           }
         }
-      } else if (sourceType === "wx") {
+      } else if (sourceType === IMPORT_SOURCE_TYPE.wx) {
         // 微信账单处理
         for (let i = 0; i < rawArray.length; i++) {
           const rowStr = JSON.stringify(rawArray[i]);
           if (rowStr && rowStr.indexOf("微信支付账单明细列表") > -1) {
+            headerRowIndex = i;
+            break;
+          }
+        }
+      } else {
+        // 处理 通用excel文件
+        for (let i = 0; i < rawArray.length; i++) {
+          const rowStr = JSON.stringify(rawArray[i]);
+          if (rowStr && rowStr.indexOf(APP_NAME.toUpperCase()) > -1) {
             headerRowIndex = i;
             break;
           }
@@ -397,125 +435,143 @@ export default function ImportScreen() {
         raw: true, // 保持原始格式 (数字就是数字)，不要让xlsx尝试转字符串
       }) as any[][];
 
-      console.log("原始数据:", dataRows[0]);
+      console.log("原始数据:", JSON.stringify(dataRows));
 
       const headerRow = dataRows[0];
       const rowIndexMap: any = {};
-
-      // 根据不同的来源类型使用不同的头部映射
+        // 根据不同的来源类型使用不同的头部映射
       const headerMap =
-        sourceType === "wx" ? WX_HEADER_NAME_MAP : ZFB_HEADER_NAME_MAP;
-
+          sourceType === IMPORT_SOURCE_TYPE.wx
+            ? WX_HEADER_NAME_MAP
+            : sourceType === IMPORT_SOURCE_TYPE.general
+            ? GENERAL_HEADER_NAME_MAP
+            : ZFB_HEADER_NAME_MAP;
       headerRow.forEach((headerName, index) => {
-        if (headerMap[headerName]) {
-          rowIndexMap[headerMap[headerName]] = index;
-        }
-      });
-
-      // 【关键修复】数据清洗与格式转换
-      finalJsonData = dataRows
-        .filter((row) => row.length > 5) // 过滤掉空行或短行
-        .map((row) => {
-          let timeVal = row[rowIndexMap.date];
-          if (typeof timeVal === "number") {
-            timeVal = formatExcelSerialDate(timeVal);
+          if (headerMap[headerName]) {
+            rowIndexMap[headerMap[headerName]] = index;
           }
-
-          // 返回处理后的对象 (映射为 App 需要的格式)
-          return {
-            date: timeVal,
-            goodDesc: row[rowIndexMap.goodDesc], // 投资理财
-            note: row[rowIndexMap.note], //
-            type:
-              row[rowIndexMap.type] === "收入"
-                ? "income"
-                : row[rowIndexMap.type] === "不计收支" || row[rowIndexMap.type] === "/"
-                  ? "income"
-                  : "expense", // 不计收支 / 支出 / 收入
-            amount: sourceType === 'wx' 
-              ? (typeof row[rowIndexMap.amount] === 'string' 
-                  ? row[rowIndexMap.amount].replace(/[¥￥]/g, '') 
-                  : row[rowIndexMap.amount]) 
-              : row[rowIndexMap.amount], // 0.08
-            raw: row, // 保留原始数据以备查
-          };
-        })
-        .slice(1)
-        .map((item) => {
-          // 确保日期是有效的Date对象
-          let transactionDate;
-          try {
-
-            // 尝试直接解析日期
-            transactionDate = new Date(item.date);
-
-            // 如果直接解析失败，尝试手动解析 "2025/11/17 15:58:47" 格式
-            if (
-              isNaN(transactionDate.getTime()) &&
-              typeof item.date === "string"
-            ) {
-              // 使用正则表达式匹配日期时间格式
-              const match = item.date.match(
-                /(\d{4})\/(\d{1,2})\/(\d{1,2})\s+(\d{1,2}):(\d{1,2}):(\d{1,2})/
-              );
-              if (match) {
-                const year = parseInt(match[1], 10);
-                const month = parseInt(match[2], 10) - 1; // 月份从0开始
-                const day = parseInt(match[3], 10);
-                const hour = parseInt(match[4], 10);
-                const minute = parseInt(match[5], 10);
-                const second = parseInt(match[6], 10);
-
-                transactionDate = new Date(
-                  year,
-                  month,
-                  day,
-                  hour,
-                  minute,
-                  second
-                );
-              }
-            }
-
-            console.log("转换后的日期:", transactionDate.toLocaleString());
-
-            // 检查日期是否有效
-            if (isNaN(transactionDate.getTime())) {
-              console.error("无效日期:", item.date);
-              // 使用当前日期作为后备
-              transactionDate = new Date();
-            }
-          } catch (error) {
-            console.error("日期解析错误:", error);
-            transactionDate = new Date();
-          }
-
-          return {
-            accountId: activeAccountId || "",
-            tagId: item.type === "income" ? tagIncomeId : tagExpensesId,
-            paymentMethodId:
-              sourceType === "wx" ? paymentWXMethodId : paymentZFBMethodId,
-            type: item.type,
-            amount: Math.abs(parseFloat(item.amount)),
-            transactionDate: transactionDate,
-            notes: `${item.goodDesc} ${item.note}`,
-            description: `${JSON.stringify(item.raw)}`,
-            isConfirmed: true,
-          };
         });
 
+        finalJsonData = dataRows
+          .filter((row) => row.length > 5) // 过滤掉空行或短行
+          .map((row) => {
+            let timeVal = row[rowIndexMap.date];
+            if (typeof timeVal === "number") {
+              timeVal = formatExcelSerialDate(timeVal);
+            }
+
+            // 返回处理后的对象 (映射为 App 需要的格式)
+            const r:any = {
+              date: timeVal,
+              goodDesc: row[rowIndexMap.goodDesc], // 投资理财
+              note: row[rowIndexMap.note], //
+              type:
+                row[rowIndexMap.type] === "收入"
+                  ? "income"
+                  : row[rowIndexMap.type] === "不计收支" ||
+                      row[rowIndexMap.type] === "/"
+                    ? "income"
+                    : "expense", // 不计收支 / 支出 / 收入
+              amount:
+                sourceType === "wx"
+                  ? typeof row[rowIndexMap.amount] === "string"
+                    ? row[rowIndexMap.amount].replace(/[¥￥]/g, "")
+                    : row[rowIndexMap.amount]
+                  : row[rowIndexMap.amount], // 0.08
+              raw: row, // 保留原始数据以备查
+            }
+
+            if(sourceType === IMPORT_SOURCE_TYPE.general) {
+              r['tag'] = row[rowIndexMap.tag] || "";
+              r['paymentMethod'] = row[rowIndexMap.paymentMethod] || "";
+            }
+            return r;
+          })
+          .slice(1)
+          .map((item) => {
+            // 确保日期是有效的Date对象
+            let transactionDate;
+            try {
+              // 尝试直接解析日期
+              transactionDate = new Date(item.date);
+
+              // 如果直接解析失败，尝试手动解析 "2025/11/17 15:58:47" 格式
+              if (
+                isNaN(transactionDate.getTime()) &&
+                typeof item.date === "string"
+              ) {
+                // 使用正则表达式匹配日期时间格式
+                const match = item.date.match(
+                  /(\d{4})\/(\d{1,2})\/(\d{1,2})\s+(\d{1,2}):(\d{1,2}):(\d{1,2})/
+                );
+                if (match) {
+                  const year = parseInt(match[1], 10);
+                  const month = parseInt(match[2], 10) - 1; // 月份从0开始
+                  const day = parseInt(match[3], 10);
+                  const hour = parseInt(match[4], 10);
+                  const minute = parseInt(match[5], 10);
+                  const second = parseInt(match[6], 10);
+
+                  transactionDate = new Date(
+                    year,
+                    month,
+                    day,
+                    hour,
+                    minute,
+                    second
+                  );
+                }
+              }
+
+              console.log("转换后的日期:", transactionDate.toLocaleString());
+
+              // 检查日期是否有效
+              if (isNaN(transactionDate.getTime())) {
+                console.error("无效日期:", item.date);
+                // 使用当前日期作为后备
+                transactionDate = new Date();
+              }
+            } catch (error) {
+              console.error("日期解析错误:", error);
+              transactionDate = new Date();
+            }
+
+            if(sourceType !== IMPORT_SOURCE_TYPE.general) return {
+              accountId: activeAccountId || "",
+              tagId: item.type === "income" ? tagIncomeId : tagExpensesId,
+              paymentMethodId:
+                sourceType === "wx" ? paymentWXMethodId : paymentZFBMethodId,
+              type: item.type,
+              amount: Math.abs(parseFloat(item.amount)),
+              transactionDate: transactionDate,
+              notes: `${item.goodDesc} ${item.note}`,
+              description: `${JSON.stringify(item.raw)}`,
+            };
+            else return {
+              accountId: activeAccountId || "",
+              type: item.type,
+              amount: Math.abs(parseFloat(item.amount)),
+              transactionDate: transactionDate,
+              notes: `${item.goodDesc} ${item.note}`,
+              description: `${JSON.stringify(item.raw)}`,
+              // 这两个比较特殊
+              tag: item.tag || "",
+              paymentMethod: item.paymentMethod || "",
+            };
+            
+          });
       setLoading(false);
 
-      if (finalJsonData.length === 0) {
+      if (finalJsonData?.length === 0) {
         Alert.alert("提示", "未解析到有效数据");
         return;
       }
 
-      console.log("第一条清洗后的数据:", finalJsonData[0]);
+      console.log("第一条清洗后的数据:", JSON.stringify(finalJsonData[0]));
 
       Alert.alert(
         "解析成功",
-        `成功读取 ${finalJsonData.length} 条记录。`,
+        `成功读取 ${finalJsonData?.length || 0} 条记录。`,
         [
           {
             text: "确认导入",
@@ -573,7 +629,7 @@ export default function ImportScreen() {
             title="支付宝账单"
             subtitle="只支持.csv格式的导出（支付宝导出就是为csv）"
             badge="推荐"
-            onPress={() => handlePickDocument("zfb")}
+            onPress={() => handlePickDocument(IMPORT_SOURCE_TYPE.zfb)}
           />
 
           {/* WeChat Option - 使用 generic icon 模拟 */}
@@ -583,7 +639,7 @@ export default function ImportScreen() {
             bgIconColor="bg-green-500" // 对应 .bg-wx
             title="微信支付账单"
             subtitle="支持 wechat_bill.xlsx"
-            onPress={() => handlePickDocument("wx")}
+            onPress={() => handlePickDocument(IMPORT_SOURCE_TYPE.wx)}
           />
 
           {/* General CSV Option */}
@@ -591,9 +647,9 @@ export default function ImportScreen() {
             iconName="document-text"
             iconColor="#ffffff"
             bgIconColor="bg-gray-400 dark:bg-gray-600"
-            title="通用 CSV/Excel 文件"
+            title="通用账单（由APP导出的xlsx文件）"
             subtitle="按照标准模板导入"
-            onPress={() => handlePickDocument("csv")}
+            onPress={() => handlePickDocument(IMPORT_SOURCE_TYPE.general)}
           />
         </View>
 
@@ -607,14 +663,14 @@ export default function ImportScreen() {
             iconName="cloud-upload"
             iconColor="#3b82f6" // primary color
             bgIconColor="bg-gray-100 dark:bg-gray-800"
-            title="导出 Excel / CSV"
-            subtitle="备份所有账单数据，支持 Excel 和 CSV 格式"
+            title="导出 Excel"
+            subtitle="导出指定账单数据"
             onPress={() => router.push("/dataExport")}
           />
         </View>
 
         {/* Template Download Link */}
-        <TouchableOpacity className="mt-8 items-center">
+        <TouchableOpacity className="mt-8 items-center" onPress={handleDownloadTemplate}>
           <Text className="text-primary text-sm underline font-medium">
             下载标准模板示例
           </Text>
@@ -622,4 +678,4 @@ export default function ImportScreen() {
       </ScrollView>
     </SafeAreaView>
   );
-}
+} 

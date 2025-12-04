@@ -234,3 +234,6 @@ export const PAYMENT_METHODS: PaymentMethod[] = [
   { id: 'friend', name: '朋友代付', icon: 'people-outline' },
   { id: 'other', name: '其他', icon: 'ellipsis-horizontal-circle-outline' },
 ];
+
+export const GITHUB_LINK = "https://github.com/Lyb-shoujibuyaofangkoudai/smallCount";
+export const APP_NAME = "smallCount";

@@ -1,7 +1,8 @@
 
 import type { InferInsertModel } from 'drizzle-orm';
 import { PaginationParams } from '../db-helper';
-import type { PaymentMethod } from '../repositories/PaymentMethodRepository';
+import { Account } from '../repositories/AccountRepository';
+import type { NewPaymentMethod, PaymentMethod } from '../repositories/PaymentMethodRepository';
 import { PaymentMethodRepository } from '../repositories/PaymentMethodRepository';
 import { NewTag, TagRepository } from '../repositories/TagRepository';
 import type { Transaction } from '../repositories/TransactionRepository';
@@ -607,5 +608,42 @@ export const TransactionService = {
     
     // 调用现有的创建方法
     return await this.createTransaction(fullTransactionData);
+  },
+
+  /**
+   * 根据筛选条件查询交易记录
+   * @param accountIds - 账户ID列表
+   * @param tagIds - 标签ID列表
+   * @param paymentMethodIds - 支付方式ID列表
+   * @param startDate - 开始日期
+   * @param endDate - 结束日期
+   * @returns 符合条件的交易记录列表
+   */
+  async getTransactionsByFilters(
+    accounts: Account[],
+    tags: NewTag[],
+    paymentMethods: NewPaymentMethod[],
+    startDate: Date,
+    endDate: Date,
+  ) {
+    const accountIds = accounts.map(account => account.id);
+    const tagIds = tags.map(tag => tag.id);
+    const paymentMethodIds = paymentMethods.map(method => method.id);
+    
+    const result =  await transactionRepo.getTransactionsByFilters(
+      accountIds,
+      tagIds,
+      paymentMethodIds,
+      startDate,
+      endDate
+    );
+
+    return await this.enrichTransactionsWithTagsAndPaymentMethods({
+      items: result,
+      total: result.length, 
+      page: 1,
+      pageSize: result.length,
+      totalPages: 1,
+    });
   }
-};
+}
