@@ -1,556 +1,564 @@
 // 主题类型定义
-export type ThemeName = 'default' | 'default_dark' | 'blue' | 'blue_dark' | 'purple' | 'purple_dark' | 'orange' | 'orange_dark';
+export type ThemeName =
+    | 'default'
+    | 'default_dark'
+    | 'blue'
+    | 'blue_dark'
+    | 'purple'
+    | 'purple_dark'
+    | 'orange'
+    | 'orange_dark'
 
 // 颜色集合接口定义
 export interface ColorPalette {
-  white: string;
-  black: string;
-  charcoal: {
-    50: string;
-    100: string;
-    200: string;
-    300: string;
-    400: string;
-    500: string;
-    600: string;
-    700: string;
-    800: string;
-    850: string;
-    900: string;
-    950: string;
-  };
-  neutral: {
-    50: string;
-    100: string;
-    200: string;
-    300: string;
-    400: string;
-    500: string;
-    600: string;
-    700: string;
-    800: string;
-    900: string;
-  };
-  primary: {
-    50: string;
-    100: string;
-    200: string;
-    300: string;
-    400: string;
-    500: string;
-    600: string;
-    700: string;
-    800: string;
-    900: string;
-  };
-  success: {
-    50: string;
-    100: string;
-    200: string;
-    300: string;
-    400: string;
-    500: string;
-    600: string;
-    700: string;
-    800: string;
-    900: string;
-  };
-  warning: {
-    50: string;
-    100: string;
-    200: string;
-    300: string;
-    400: string;
-    500: string;
-    600: string;
-    700: string;
-    800: string;
-    900: string;
-  };
-  danger: {
-    50: string;
-    100: string;
-    200: string;
-    300: string;
-    400: string;
-    500: string;
-    600: string;
-    700: string;
-    800: string;
-    900: string;
-  };
+    white: string
+    black: string
+    charcoal: {
+        50: string
+        100: string
+        200: string
+        300: string
+        400: string
+        500: string
+        600: string
+        700: string
+        800: string
+        850: string
+        900: string
+        950: string
+    }
+    neutral: {
+        50: string
+        100: string
+        200: string
+        300: string
+        400: string
+        500: string
+        600: string
+        700: string
+        800: string
+        900: string
+    }
+    primary: {
+        50: string
+        100: string
+        200: string
+        300: string
+        400: string
+        500: string
+        600: string
+        700: string
+        800: string
+        900: string
+    }
+    success: {
+        50: string
+        100: string
+        200: string
+        300: string
+        400: string
+        500: string
+        600: string
+        700: string
+        800: string
+        900: string
+    }
+    warning: {
+        50: string
+        100: string
+        200: string
+        300: string
+        400: string
+        500: string
+        600: string
+        700: string
+        800: string
+        900: string
+    }
+    danger: {
+        50: string
+        100: string
+        200: string
+        300: string
+        400: string
+        500: string
+        600: string
+        700: string
+        800: string
+        900: string
+    }
 }
 
 // 通用基础颜色（所有主题共享的基础颜色）
 export const baseColors = {
-  white: "#ffffff",
-  black: "#000000",
-  // 深色模式和中性色在所有主题中保持一致
-  charcoal: {
-    50: "#f8f8f8",
-    100: "#e8e8e8",
-    200: "#d4d4d4",
-    300: "#b3b3b3",
-    400: "#8a8a8a",
-    500: "#6b6b6b",
-    600: "#4a4a4a",
-    700: "#3a3a3a",
-    800: "#1b1b1c", // 修改为指定的深色背景色
-    850: "#161616",
-    900: "#121212",
-    950: "#0a0a0a",
-  },
-  neutral: {
-    50: "#f9fafb",
-    100: "#f3f4f6",
-    200: "#e5e7eb",
-    300: "#d1d5db",
-    400: "#9ca3af",
-    500: "#6b7280",
-    600: "#4b5563",
-    700: "#374151",
-    800: "#1f2937",
-    900: "#111827",
-  },
-};
+    white: '#ffffff',
+    black: '#000000',
+    // 深色模式和中性色在所有主题中保持一致
+    charcoal: {
+        50: '#f8f8f8',
+        100: '#e8e8e8',
+        200: '#d4d4d4',
+        300: '#b3b3b3',
+        400: '#8a8a8a',
+        500: '#6b6b6b',
+        600: '#4a4a4a',
+        700: '#3a3a3a',
+        800: '#1b1b1c', // 修改为指定的深色背景色
+        850: '#161616',
+        900: '#121212',
+        950: '#0a0a0a',
+    },
+    neutral: {
+        50: '#f9fafb',
+        100: '#f3f4f6',
+        200: '#e5e7eb',
+        300: '#d1d5db',
+        400: '#9ca3af',
+        500: '#6b7280',
+        600: '#4b5563',
+        700: '#374151',
+        800: '#1f2937',
+        900: '#111827',
+    },
+}
 
 // 默认主题（绿色系）
 const defaultTheme: ColorPalette = {
-  ...baseColors,
-  primary: {
-    50: "#ecfdf5",
-    100: "#d1fae5",
-    200: "#a7f3d0",
-    300: "#6ee7b7",
-    400: "#34d399",
-    500: "#10b981",
-    600: "#059669",
-    700: "#047857",
-    800: "#065f46",
-    900: "#064e3b",
-  },
-  success: {
-    50: "#f0fdf4",
-    100: "#dcfce7",
-    200: "#bbf7d0",
-    300: "#86efac",
-    400: "#4ade80",
-    500: "#22c55e",
-    600: "#16a34a",
-    700: "#15803d",
-    800: "#166534",
-    900: "#14532d",
-  },
-  warning: {
-    50: "#fffbeb",
-    100: "#fef3c7",
-    200: "#fde68a",
-    300: "#fcd34d",
-    400: "#fbbf24",
-    500: "#f59e0b",
-    600: "#d97706",
-    700: "#b45309",
-    800: "#92400e",
-    900: "#78350f",
-  },
-  danger: {
-    50: "#fef2f2",
-    100: "#fee2e2",
-    200: "#fecaca",
-    300: "#fca5a5",
-    400: "#f87171",
-    500: "#ef4444",
-    600: "#dc2626",
-    700: "#b91c1c",
-    800: "#991b1b",
-    900: "#7f1d1d",
-  },
-};
+    ...baseColors,
+    primary: {
+        50: '#ecfdf5',
+        100: '#d1fae5',
+        200: '#a7f3d0',
+        300: '#6ee7b7',
+        400: '#34d399',
+        500: '#10b981',
+        600: '#059669',
+        700: '#047857',
+        800: '#065f46',
+        900: '#064e3b',
+    },
+    success: {
+        50: '#f0fdf4',
+        100: '#dcfce7',
+        200: '#bbf7d0',
+        300: '#86efac',
+        400: '#4ade80',
+        500: '#22c55e',
+        600: '#16a34a',
+        700: '#15803d',
+        800: '#166534',
+        900: '#14532d',
+    },
+    warning: {
+        50: '#fffbeb',
+        100: '#fef3c7',
+        200: '#fde68a',
+        300: '#fcd34d',
+        400: '#fbbf24',
+        500: '#f59e0b',
+        600: '#d97706',
+        700: '#b45309',
+        800: '#92400e',
+        900: '#78350f',
+    },
+    danger: {
+        50: '#fef2f2',
+        100: '#fee2e2',
+        200: '#fecaca',
+        300: '#fca5a5',
+        400: '#f87171',
+        500: '#ef4444',
+        600: '#dc2626',
+        700: '#b91c1c',
+        800: '#991b1b',
+        900: '#7f1d1d',
+    },
+}
 
 // 蓝色主题
 const blueTheme: ColorPalette = {
-  ...baseColors,
-  primary: {
-    50: "#eff6ff",
-    100: "#dbeafe",
-    200: "#bfdbfe",
-    300: "#93c5fd",
-    400: "#60a5fa",
-    500: "#3b82f6",
-    600: "#2563eb",
-    700: "#1d4ed8",
-    800: "#1e40af",
-    900: "#1e3a8a",
-  },
-  success: {
-    50: "#eff6ff",
-    100: "#dbeafe",
-    200: "#bfdbfe",
-    300: "#93c5fd",
-    400: "#60a5fa",
-    500: "#3b82f6",
-    600: "#2563eb",
-    700: "#1d4ed8",
-    800: "#1e40af",
-    900: "#1e3a8a",
-  },
-  warning: {
-    50: "#fffbeb",
-    100: "#fef3c7",
-    200: "#fde68a",
-    300: "#fcd34d",
-    400: "#fbbf24",
-    500: "#f59e0b",
-    600: "#d97706",
-    700: "#b45309",
-    800: "#92400e",
-    900: "#78350f",
-  },
-  danger: {
-    50: "#fee2e2",
-    100: "#fecaca",
-    200: "#fca5a5",
-    300: "#f87171",
-    400: "#ef4444",
-    500: "#dc2626",
-    600: "#b91c1c",
-    700: "#991b1b",
-    800: "#7f1d1d",
-    900: "#621b1b",
-  },
-};
+    ...baseColors,
+    primary: {
+        50: '#eff6ff',
+        100: '#dbeafe',
+        200: '#bfdbfe',
+        300: '#93c5fd',
+        400: '#60a5fa',
+        500: '#3b82f6',
+        600: '#2563eb',
+        700: '#1d4ed8',
+        800: '#1e40af',
+        900: '#1e3a8a',
+    },
+    success: {
+        50: '#eff6ff',
+        100: '#dbeafe',
+        200: '#bfdbfe',
+        300: '#93c5fd',
+        400: '#60a5fa',
+        500: '#3b82f6',
+        600: '#2563eb',
+        700: '#1d4ed8',
+        800: '#1e40af',
+        900: '#1e3a8a',
+    },
+    warning: {
+        50: '#fffbeb',
+        100: '#fef3c7',
+        200: '#fde68a',
+        300: '#fcd34d',
+        400: '#fbbf24',
+        500: '#f59e0b',
+        600: '#d97706',
+        700: '#b45309',
+        800: '#92400e',
+        900: '#78350f',
+    },
+    danger: {
+        50: '#fee2e2',
+        100: '#fecaca',
+        200: '#fca5a5',
+        300: '#f87171',
+        400: '#ef4444',
+        500: '#dc2626',
+        600: '#b91c1c',
+        700: '#991b1b',
+        800: '#7f1d1d',
+        900: '#621b1b',
+    },
+}
 
 // 紫色主题
 const purpleTheme: ColorPalette = {
-  ...baseColors,
-  primary: {
-    50: "#f5f3ff",
-    100: "#ede9fe",
-    200: "#ddd6fe",
-    300: "#c4b5fd",
-    400: "#a78bfa",
-    500: "#8b5cf6",
-    600: "#7c3aed",
-    700: "#6d28d9",
-    800: "#5b21b6",
-    900: "#4c1d95",
-  },
-  success: {
-    50: "#f5f3ff",
-    100: "#ede9fe",
-    200: "#ddd6fe",
-    300: "#c4b5fd",
-    400: "#a78bfa",
-    500: "#8b5cf6",
-    600: "#7c3aed",
-    700: "#6d28d9",
-    800: "#5b21b6",
-    900: "#4c1d95",
-  },
-  warning: {
-    50: "#fffbeb",
-    100: "#fef3c7",
-    200: "#fde68a",
-    300: "#fcd34d",
-    400: "#fbbf24",
-    500: "#f59e0b",
-    600: "#d97706",
-    700: "#b45309",
-    800: "#92400e",
-    900: "#78350f",
-  },
-  danger: {
-    50: "#fdf2f8",
-    100: "#fce7f3",
-    200: "#fbcfe8",
-    300: "#f9a8d4",
-    400: "#f472b6",
-    500: "#ec4899",
-    600: "#db2777",
-    700: "#be185d",
-    800: "#9d174d",
-    900: "#831843",
-  },
-};
+    ...baseColors,
+    primary: {
+        50: '#f5f3ff',
+        100: '#ede9fe',
+        200: '#ddd6fe',
+        300: '#c4b5fd',
+        400: '#a78bfa',
+        500: '#8b5cf6',
+        600: '#7c3aed',
+        700: '#6d28d9',
+        800: '#5b21b6',
+        900: '#4c1d95',
+    },
+    success: {
+        50: '#f5f3ff',
+        100: '#ede9fe',
+        200: '#ddd6fe',
+        300: '#c4b5fd',
+        400: '#a78bfa',
+        500: '#8b5cf6',
+        600: '#7c3aed',
+        700: '#6d28d9',
+        800: '#5b21b6',
+        900: '#4c1d95',
+    },
+    warning: {
+        50: '#fffbeb',
+        100: '#fef3c7',
+        200: '#fde68a',
+        300: '#fcd34d',
+        400: '#fbbf24',
+        500: '#f59e0b',
+        600: '#d97706',
+        700: '#b45309',
+        800: '#92400e',
+        900: '#78350f',
+    },
+    danger: {
+        50: '#fdf2f8',
+        100: '#fce7f3',
+        200: '#fbcfe8',
+        300: '#f9a8d4',
+        400: '#f472b6',
+        500: '#ec4899',
+        600: '#db2777',
+        700: '#be185d',
+        800: '#9d174d',
+        900: '#831843',
+    },
+}
 
 // 橙色主题
 const orangeTheme: ColorPalette = {
-  ...baseColors,
-  primary: {
-    50: "#fff7ed",
-    100: "#ffedd5",
-    200: "#fed7aa",
-    300: "#fdba74",
-    400: "#fb923c",
-    500: "#f97316",
-    600: "#ea580c",
-    700: "#c2410c",
-    800: "#9a3412",
-    900: "#7c2d12",
-  },
-  success: {
-    50: "#fff7ed",
-    100: "#ffedd5",
-    200: "#fed7aa",
-    300: "#fdba74",
-    400: "#fb923c",
-    500: "#f97316",
-    600: "#ea580c",
-    700: "#c2410c",
-    800: "#9a3412",
-    900: "#7c2d12",
-  },
-  warning: {
-    50: "#fffbeb",
-    100: "#fef3c7",
-    200: "#fde68a",
-    300: "#fcd34d",
-    400: "#fbbf24",
-    500: "#f59e0b",
-    600: "#d97706",
-    700: "#b45309",
-    800: "#92400e",
-    900: "#78350f",
-  },
-  danger: {
-    50: "#fffbeb",
-    100: "#fef3c7",
-    200: "#fde68a",
-    300: "#fcd34d",
-    400: "#fbbf24",
-    500: "#f59e0b",
-    600: "#d97706",
-    700: "#b45309",
-    800: "#92400e",
-    900: "#78350f",
-  },
-};
+    ...baseColors,
+    primary: {
+        50: '#fff7ed',
+        100: '#ffedd5',
+        200: '#fed7aa',
+        300: '#fdba74',
+        400: '#fb923c',
+        500: '#f97316',
+        600: '#ea580c',
+        700: '#c2410c',
+        800: '#9a3412',
+        900: '#7c2d12',
+    },
+    success: {
+        50: '#fff7ed',
+        100: '#ffedd5',
+        200: '#fed7aa',
+        300: '#fdba74',
+        400: '#fb923c',
+        500: '#f97316',
+        600: '#ea580c',
+        700: '#c2410c',
+        800: '#9a3412',
+        900: '#7c2d12',
+    },
+    warning: {
+        50: '#fffbeb',
+        100: '#fef3c7',
+        200: '#fde68a',
+        300: '#fcd34d',
+        400: '#fbbf24',
+        500: '#f59e0b',
+        600: '#d97706',
+        700: '#b45309',
+        800: '#92400e',
+        900: '#78350f',
+    },
+    danger: {
+        50: '#fffbeb',
+        100: '#fef3c7',
+        200: '#fde68a',
+        300: '#fcd34d',
+        400: '#fbbf24',
+        500: '#f59e0b',
+        600: '#d97706',
+        700: '#b45309',
+        800: '#92400e',
+        900: '#78350f',
+    },
+}
 
 // 暗色主题颜色定义
 const defaultDarkTheme: ColorPalette = {
-  ...baseColors,
-  primary: {
-    50: "#ecfdf5",
-    100: "#d1fae5",
-    200: "#a7f3d0",
-    300: "#6ee7b7",
-    400: "#34d399",
-    500: "#10b981",
-    600: "#059669",
-    700: "#047857",
-    800: "#065f46",
-    900: "#064e3b",
-  },
-  success: {
-    50: "#f0fdf4",
-    100: "#dcfce7",
-    200: "#bbf7d0",
-    300: "#86efac",
-    400: "#4ade80",
-    500: "#22c55e",
-    600: "#16a34a",
-    700: "#15803d",
-    800: "#166534",
-    900: "#14532d",
-  },
-  warning: {
-    50: "#fffbeb",
-    100: "#fef3c7",
-    200: "#fde68a",
-    300: "#fcd34d",
-    400: "#fbbf24",
-    500: "#f59e0b",
-    600: "#d97706",
-    700: "#b45309",
-    800: "#92400e",
-    900: "#78350f",
-  },
-  danger: {
-    50: "#fef2f2",
-    100: "#fee2e2",
-    200: "#fecaca",
-    300: "#fca5a5",
-    400: "#f87171",
-    500: "#ef4444",
-    600: "#dc2626",
-    700: "#b91c1c",
-    800: "#991b1b",
-    900: "#7f1d1d",
-  },
-};
+    ...baseColors,
+    primary: {
+        50: '#ecfdf5',
+        100: '#d1fae5',
+        200: '#a7f3d0',
+        300: '#6ee7b7',
+        400: '#34d399',
+        500: '#10b981',
+        600: '#059669',
+        700: '#047857',
+        800: '#065f46',
+        900: '#064e3b',
+    },
+    success: {
+        50: '#f0fdf4',
+        100: '#dcfce7',
+        200: '#bbf7d0',
+        300: '#86efac',
+        400: '#4ade80',
+        500: '#22c55e',
+        600: '#16a34a',
+        700: '#15803d',
+        800: '#166534',
+        900: '#14532d',
+    },
+    warning: {
+        50: '#fffbeb',
+        100: '#fef3c7',
+        200: '#fde68a',
+        300: '#fcd34d',
+        400: '#fbbf24',
+        500: '#f59e0b',
+        600: '#d97706',
+        700: '#b45309',
+        800: '#92400e',
+        900: '#78350f',
+    },
+    danger: {
+        50: '#fef2f2',
+        100: '#fee2e2',
+        200: '#fecaca',
+        300: '#fca5a5',
+        400: '#f87171',
+        500: '#ef4444',
+        600: '#dc2626',
+        700: '#b91c1c',
+        800: '#991b1b',
+        900: '#7f1d1d',
+    },
+}
 
 const blueDarkTheme: ColorPalette = {
-  ...baseColors,
-  primary: {
-    50: "#eff6ff",
-    100: "#dbeafe",
-    200: "#bfdbfe",
-    300: "#93c5fd",
-    400: "#60a5fa",
-    500: "#3b82f6",
-    600: "#2563eb",
-    700: "#1d4ed8",
-    800: "#1e40af",
-    900: "#1e3a8a",
-  },
-  success: {
-    50: "#eff6ff",
-    100: "#dbeafe",
-    200: "#bfdbfe",
-    300: "#93c5fd",
-    400: "#60a5fa",
-    500: "#3b82f6",
-    600: "#2563eb",
-    700: "#1d4ed8",
-    800: "#1e40af",
-    900: "#1e3a8a",
-  },
-  warning: {
-    50: "#fffbeb",
-    100: "#fef3c7",
-    200: "#fde68a",
-    300: "#fcd34d",
-    400: "#fbbf24",
-    500: "#f59e0b",
-    600: "#d97706",
-    700: "#b45309",
-    800: "#92400e",
-    900: "#78350f",
-  },
-  danger: {
-    50: "#fee2e2",
-    100: "#fecaca",
-    200: "#fca5a5",
-    300: "#f87171",
-    400: "#ef4444",
-    500: "#dc2626",
-    600: "#b91c1c",
-    700: "#991b1b",
-    800: "#7f1d1d",
-    900: "#621b1b",
-  },
-};
+    ...baseColors,
+    primary: {
+        50: '#eff6ff',
+        100: '#dbeafe',
+        200: '#bfdbfe',
+        300: '#93c5fd',
+        400: '#60a5fa',
+        500: '#3b82f6',
+        600: '#2563eb',
+        700: '#1d4ed8',
+        800: '#1e40af',
+        900: '#1e3a8a',
+    },
+    success: {
+        50: '#eff6ff',
+        100: '#dbeafe',
+        200: '#bfdbfe',
+        300: '#93c5fd',
+        400: '#60a5fa',
+        500: '#3b82f6',
+        600: '#2563eb',
+        700: '#1d4ed8',
+        800: '#1e40af',
+        900: '#1e3a8a',
+    },
+    warning: {
+        50: '#fffbeb',
+        100: '#fef3c7',
+        200: '#fde68a',
+        300: '#fcd34d',
+        400: '#fbbf24',
+        500: '#f59e0b',
+        600: '#d97706',
+        700: '#b45309',
+        800: '#92400e',
+        900: '#78350f',
+    },
+    danger: {
+        50: '#fee2e2',
+        100: '#fecaca',
+        200: '#fca5a5',
+        300: '#f87171',
+        400: '#ef4444',
+        500: '#dc2626',
+        600: '#b91c1c',
+        700: '#991b1b',
+        800: '#7f1d1d',
+        900: '#621b1b',
+    },
+}
 
 const purpleDarkTheme: ColorPalette = {
-  ...baseColors,
-  primary: {
-    50: "#f5f3ff",
-    100: "#ede9fe",
-    200: "#ddd6fe",
-    300: "#c4b5fd",
-    400: "#a78bfa",
-    500: "#8b5cf6",
-    600: "#7c3aed",
-    700: "#6d28d9",
-    800: "#5b21b6",
-    900: "#4c1d95",
-  },
-  success: {
-    50: "#f5f3ff",
-    100: "#ede9fe",
-    200: "#ddd6fe",
-    300: "#c4b5fd",
-    400: "#a78bfa",
-    500: "#8b5cf6",
-    600: "#7c3aed",
-    700: "#6d28d9",
-    800: "#5b21b6",
-    900: "#4c1d95",
-  },
-  warning: {
-    50: "#fffbeb",
-    100: "#fef3c7",
-    200: "#fde68a",
-    300: "#fcd34d",
-    400: "#fbbf24",
-    500: "#f59e0b",
-    600: "#d97706",
-    700: "#b45309",
-    800: "#92400e",
-    900: "#78350f",
-  },
-  danger: {
-    50: "#fdf2f8",
-    100: "#fce7f3",
-    200: "#fbcfe8",
-    300: "#f9a8d4",
-    400: "#f472b6",
-    500: "#ec4899",
-    600: "#db2777",
-    700: "#be185d",
-    800: "#9d174d",
-    900: "#831843",
-  },
-};
+    ...baseColors,
+    primary: {
+        50: '#f5f3ff',
+        100: '#ede9fe',
+        200: '#ddd6fe',
+        300: '#c4b5fd',
+        400: '#a78bfa',
+        500: '#8b5cf6',
+        600: '#7c3aed',
+        700: '#6d28d9',
+        800: '#5b21b6',
+        900: '#4c1d95',
+    },
+    success: {
+        50: '#f5f3ff',
+        100: '#ede9fe',
+        200: '#ddd6fe',
+        300: '#c4b5fd',
+        400: '#a78bfa',
+        500: '#8b5cf6',
+        600: '#7c3aed',
+        700: '#6d28d9',
+        800: '#5b21b6',
+        900: '#4c1d95',
+    },
+    warning: {
+        50: '#fffbeb',
+        100: '#fef3c7',
+        200: '#fde68a',
+        300: '#fcd34d',
+        400: '#fbbf24',
+        500: '#f59e0b',
+        600: '#d97706',
+        700: '#b45309',
+        800: '#92400e',
+        900: '#78350f',
+    },
+    danger: {
+        50: '#fdf2f8',
+        100: '#fce7f3',
+        200: '#fbcfe8',
+        300: '#f9a8d4',
+        400: '#f472b6',
+        500: '#ec4899',
+        600: '#db2777',
+        700: '#be185d',
+        800: '#9d174d',
+        900: '#831843',
+    },
+}
 
 const orangeDarkTheme: ColorPalette = {
-  ...baseColors,
-  primary: {
-    50: "#fff7ed",
-    100: "#ffedd5",
-    200: "#fed7aa",
-    300: "#fdba74",
-    400: "#fb923c",
-    500: "#f97316",
-    600: "#ea580c",
-    700: "#c2410c",
-    800: "#9a3412",
-    900: "#7c2d12",
-  },
-  success: {
-    50: "#fff7ed",
-    100: "#ffedd5",
-    200: "#fed7aa",
-    300: "#fdba74",
-    400: "#fb923c",
-    500: "#f97316",
-    600: "#ea580c",
-    700: "#c2410c",
-    800: "#9a3412",
-    900: "#7c2d12",
-  },
-  warning: {
-    50: "#fffbeb",
-    100: "#fef3c7",
-    200: "#fde68a",
-    300: "#fcd34d",
-    400: "#fbbf24",
-    500: "#f59e0b",
-    600: "#d97706",
-    700: "#b45309",
-    800: "#92400e",
-    900: "#78350f",
-  },
-  danger: {
-    50: "#fffbeb",
-    100: "#fef3c7",
-    200: "#fde68a",
-    300: "#fcd34d",
-    400: "#fbbf24",
-    500: "#f59e0b",
-    600: "#d97706",
-    700: "#b45309",
-    800: "#92400e",
-    900: "#78350f",
-  },
-};
+    ...baseColors,
+    primary: {
+        50: '#fff7ed',
+        100: '#ffedd5',
+        200: '#fed7aa',
+        300: '#fdba74',
+        400: '#fb923c',
+        500: '#f97316',
+        600: '#ea580c',
+        700: '#c2410c',
+        800: '#9a3412',
+        900: '#7c2d12',
+    },
+    success: {
+        50: '#fff7ed',
+        100: '#ffedd5',
+        200: '#fed7aa',
+        300: '#fdba74',
+        400: '#fb923c',
+        500: '#f97316',
+        600: '#ea580c',
+        700: '#c2410c',
+        800: '#9a3412',
+        900: '#7c2d12',
+    },
+    warning: {
+        50: '#fffbeb',
+        100: '#fef3c7',
+        200: '#fde68a',
+        300: '#fcd34d',
+        400: '#fbbf24',
+        500: '#f59e0b',
+        600: '#d97706',
+        700: '#b45309',
+        800: '#92400e',
+        900: '#78350f',
+    },
+    danger: {
+        50: '#fffbeb',
+        100: '#fef3c7',
+        200: '#fde68a',
+        300: '#fcd34d',
+        400: '#fbbf24',
+        500: '#f59e0b',
+        600: '#d97706',
+        700: '#b45309',
+        800: '#92400e',
+        900: '#78350f',
+    },
+}
 
 // 主题集合
 export const themes: Record<ThemeName, ColorPalette> = {
-  default: defaultTheme,
-  default_dark: defaultDarkTheme,
-  blue: blueTheme,
-  blue_dark: blueDarkTheme,
-  purple: purpleTheme,
-  purple_dark: purpleDarkTheme,
-  orange: orangeTheme,
-  orange_dark: orangeDarkTheme,
-};
+    default: defaultTheme,
+    default_dark: defaultDarkTheme,
+    blue: blueTheme,
+    blue_dark: blueDarkTheme,
+    purple: purpleTheme,
+    purple_dark: purpleDarkTheme,
+    orange: orangeTheme,
+    orange_dark: orangeDarkTheme,
+}
 
 // 获取当前主题的颜色
 export const getThemeColors = (themeName: ThemeName = 'default'): ColorPalette => {
-  return themes[themeName] || themes.default;
-};
+    return themes[themeName] || themes.default
+}
 
 // 颜色透明方法
 /**
@@ -560,129 +568,129 @@ export const getThemeColors = (themeName: ThemeName = 'default'): ColorPalette =
  * @returns 返回RGBA格式的字符串，如"rgba(255, 255, 255, 0.5)"
  */
 export const addAlphaToColor = (color: string, alpha: number): string => {
-  // 验证透明度值
-  if (alpha < 0 || alpha > 1) {
-    throw new Error('透明度值必须在0到1之间');
-  }
-
-  // 清理颜色字符串
-  const cleanColor = color.trim().toLowerCase();
-
-  // 处理RGBA格式
-  if (cleanColor.startsWith('rgba')) {
-    const rgbaMatch = cleanColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*(\d*\.?\d+))?\)/);
-    if (rgbaMatch) {
-      const r = parseInt(rgbaMatch[1]);
-      const g = parseInt(rgbaMatch[2]);
-      const b = parseInt(rgbaMatch[3]);
-      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    // 验证透明度值
+    if (alpha < 0 || alpha > 1) {
+        throw new Error('透明度值必须在0到1之间')
     }
-  }
 
-  // 处理RGB格式
-  if (cleanColor.startsWith('rgb')) {
-    const rgbMatch = cleanColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
-    if (rgbMatch) {
-      const r = parseInt(rgbMatch[1]);
-      const g = parseInt(rgbMatch[2]);
-      const b = parseInt(rgbMatch[3]);
-      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    // 清理颜色字符串
+    const cleanColor = color.trim().toLowerCase()
+
+    // 处理RGBA格式
+    if (cleanColor.startsWith('rgba')) {
+        const rgbaMatch = cleanColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*(\d*\.?\d+))?\)/)
+        if (rgbaMatch) {
+            const r = parseInt(rgbaMatch[1])
+            const g = parseInt(rgbaMatch[2])
+            const b = parseInt(rgbaMatch[3])
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`
+        }
     }
-  }
 
-  // 处理十六进制格式
-  if (cleanColor.startsWith('#')) {
-    let hex = cleanColor.slice(1);
-    
-    // 处理3位或4位十六进制
-    if (hex.length === 3 || hex.length === 4) {
-      hex = hex.split('').map(char => char + char).join('');
+    // 处理RGB格式
+    if (cleanColor.startsWith('rgb')) {
+        const rgbMatch = cleanColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/)
+        if (rgbMatch) {
+            const r = parseInt(rgbMatch[1])
+            const g = parseInt(rgbMatch[2])
+            const b = parseInt(rgbMatch[3])
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`
+        }
     }
-    
-    // 处理6位或8位十六进制
-    if (hex.length === 6 || hex.length === 8) {
-      const r = parseInt(hex.slice(0, 2), 16);
-      const g = parseInt(hex.slice(2, 4), 16);
-      const b = parseInt(hex.slice(4, 6), 16);
-      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+
+    // 处理十六进制格式
+    if (cleanColor.startsWith('#')) {
+        let hex = cleanColor.slice(1)
+
+        // 处理3位或4位十六进制
+        if (hex.length === 3 || hex.length === 4) {
+            hex = hex
+                .split('')
+                .map(char => char + char)
+                .join('')
+        }
+
+        // 处理6位或8位十六进制
+        if (hex.length === 6 || hex.length === 8) {
+            const r = parseInt(hex.slice(0, 2), 16)
+            const g = parseInt(hex.slice(2, 4), 16)
+            const b = parseInt(hex.slice(4, 6), 16)
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`
+        }
     }
-  }
 
-  // 处理命名颜色（简单支持常见颜色）
-  const namedColors: Record<string, string> = {
-    'black': '#000000',
-    'white': '#ffffff',
-    'red': '#ff0000',
-    'green': '#00ff00',
-    'blue': '#0000ff',
-    'yellow': '#ffff00',
-    'cyan': '#00ffff',
-    'magenta': '#ff00ff',
-    'gray': '#808080',
-    'grey': '#808080',
-    'silver': '#c0c0c0',
-    'maroon': '#800000',
-    'olive': '#808000',
-    'lime': '#00ff00',
-    'aqua': '#00ffff',
-    'teal': '#008080',
-    'navy': '#000080',
-    'fuchsia': '#ff00ff',
-    'purple': '#800080',
-    'orange': '#ffa500',
-  };
+    // 处理命名颜色（简单支持常见颜色）
+    const namedColors: Record<string, string> = {
+        black: '#000000',
+        white: '#ffffff',
+        red: '#ff0000',
+        green: '#00ff00',
+        blue: '#0000ff',
+        yellow: '#ffff00',
+        cyan: '#00ffff',
+        magenta: '#ff00ff',
+        gray: '#808080',
+        grey: '#808080',
+        silver: '#c0c0c0',
+        maroon: '#800000',
+        olive: '#808000',
+        lime: '#00ff00',
+        aqua: '#00ffff',
+        teal: '#008080',
+        navy: '#000080',
+        fuchsia: '#ff00ff',
+        purple: '#800080',
+        orange: '#ffa500',
+    }
 
-  if (namedColors[cleanColor]) {
-    return addAlphaToColor(namedColors[cleanColor], alpha);
-  }
+    if (namedColors[cleanColor]) {
+        return addAlphaToColor(namedColors[cleanColor], alpha)
+    }
 
-  throw new Error(`不支持的颜色格式: ${color}`);
-};
+    throw new Error(`不支持的颜色格式: ${color}`)
+}
 
 /**
  * 生成随机颜色
  * @param format 颜色格式，支持 'hex'（默认）、'rgb'、'rgba'
  * @returns 对应格式的随机颜色字符串
  */
-export function generateRandomColor(
-  format: 'hex' | 'rgb' | 'rgba' = 'hex'
-): string {
-  // 生成 0-255 之间的随机整数
-  const getRandomByte = (): number => Math.floor(Math.random() * 256);
+export function generateRandomColor(format: 'hex' | 'rgb' | 'rgba' = 'hex'): string {
+    // 生成 0-255 之间的随机整数
+    const getRandomByte = (): number => Math.floor(Math.random() * 256)
 
-  // 生成 0-1 之间的随机透明度（保留2位小数）
-  const getRandomAlpha = (): number => Number((Math.random()).toFixed(2));
+    // 生成 0-1 之间的随机透明度（保留2位小数）
+    const getRandomAlpha = (): number => Number(Math.random().toFixed(2))
 
-  // 生成十六进制字符（0-9, a-f）
-  const getHexChar = (byte: number): string => byte.toString(16).padStart(2, '0');
+    // 生成十六进制字符（0-9, a-f）
+    const getHexChar = (byte: number): string => byte.toString(16).padStart(2, '0')
 
-  // 根据格式生成对应颜色
-  switch (format) {
-    case 'hex':
-      const r = getHexChar(getRandomByte());
-      const g = getHexChar(getRandomByte());
-      const b = getHexChar(getRandomByte());
-      return `#${r}${g}${b}`;
+    // 根据格式生成对应颜色
+    switch (format) {
+        case 'hex':
+            const r = getHexChar(getRandomByte())
+            const g = getHexChar(getRandomByte())
+            const b = getHexChar(getRandomByte())
+            return `#${r}${g}${b}`
 
-    case 'rgb':
-      const rgbR = getRandomByte();
-      const rgbG = getRandomByte();
-      const rgbB = getRandomByte();
-      return `rgb(${rgbR}, ${rgbG}, ${rgbB})`;
+        case 'rgb':
+            const rgbR = getRandomByte()
+            const rgbG = getRandomByte()
+            const rgbB = getRandomByte()
+            return `rgb(${rgbR}, ${rgbG}, ${rgbB})`
 
-    case 'rgba':
-      const rgbaR = getRandomByte();
-      const rgbaG = getRandomByte();
-      const rgbaB = getRandomByte();
-      const alpha = getRandomAlpha();
-      return `rgba(${rgbaR}, ${rgbaG}, ${rgbaB}, ${alpha})`;
+        case 'rgba':
+            const rgbaR = getRandomByte()
+            const rgbaG = getRandomByte()
+            const rgbaB = getRandomByte()
+            const alpha = getRandomAlpha()
+            return `rgba(${rgbaR}, ${rgbaG}, ${rgbaB}, ${alpha})`
 
-    default:
-      // 处理无效格式（TypeScript 已限制输入，此处为安全兜底）
-      throw new Error(`不支持的颜色格式: ${format}`);
-  }
+        default:
+            // 处理无效格式（TypeScript 已限制输入，此处为安全兜底）
+            throw new Error(`不支持的颜色格式: ${format}`)
+    }
 }
-
 
 /**
  * 便捷方法：为颜色添加透明度并返回RGBA字符串（简化版）
@@ -691,10 +699,8 @@ export function generateRandomColor(
  * @returns 返回RGBA格式的字符串
  */
 export const alpha = (color: string, alpha: number): string => {
-  return addAlphaToColor(color, alpha);
-};
-
+    return addAlphaToColor(color, alpha)
+}
 
 // 导出默认主题颜色作为向后兼容
-export const colors = defaultTheme;
-
+export const colors = defaultTheme
