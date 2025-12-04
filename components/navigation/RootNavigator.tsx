@@ -85,6 +85,10 @@ export const RootNavigator = () => {
                 name="importScreen"
                 options={{ presentation: "modal", title: "数据管理", headerShown: false }}
               />
+              <Stack.Screen
+                name="dataExport"
+                options={{ presentation: "modal", title: "数据导出", headerShown: false }}
+              />
             </Stack>
           </DatabaseProvider>
         </ThemeProvider>

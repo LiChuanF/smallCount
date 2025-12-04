@@ -11,33 +11,21 @@ import {
 interface MonthPickerModalProps {
   visible: boolean;
   onClose: () => void;
-  onConfirm?: (year: number, month: number) => void;
-  onRangeConfirm?: (startYear: number, startMonth: number, endYear: number, endMonth: number) => void;
+  onConfirm: (year: number, month: number) => void;
   initialYear?: number;
   initialMonth?: number;
-  initialStartYear?: number;
-  initialStartMonth?: number;
-  initialEndYear?: number;
-  initialEndMonth?: number;
   minDate?: string;
   maxDate?: string;
-  enableRangeSelection?: boolean;
 }
 
 const MonthPickerModal: React.FC<MonthPickerModalProps> = ({
   visible,
   onClose,
   onConfirm,
-  onRangeConfirm,
   initialYear = new Date().getFullYear(),
   initialMonth = new Date().getMonth() + 1,
-  initialStartYear,
-  initialStartMonth,
-  initialEndYear,
-  initialEndMonth,
   minDate,
   maxDate,
-  enableRangeSelection = false,
 }) => {
   const { theme } = useTheme();
   const [selectedYear, setSelectedYear] = useState(initialYear);
@@ -48,13 +36,6 @@ const MonthPickerModal: React.FC<MonthPickerModalProps> = ({
   
   // 新增：年份选择网格的基准年份（用于分页，每次显示12个年份）
   const [yearBasis, setYearBasis] = useState(initialYear);
-  
-  // 新增：范围选择相关状态
-  const [rangeSelectionStep, setRangeSelectionStep] = useState<'start' | 'end'>('start');
-  const [startYear, setStartYear] = useState(initialStartYear || initialYear);
-  const [startMonth, setStartMonth] = useState(initialStartMonth || initialMonth);
-  const [endYear, setEndYear] = useState(initialEndYear || initialYear);
-  const [endMonth, setEndMonth] = useState(initialEndMonth || initialMonth);
 
   // 获取主题颜色
   const getThemeColors = () => {
@@ -69,9 +50,6 @@ const MonthPickerModal: React.FC<MonthPickerModalProps> = ({
       bgModal: isDark ? theme.colors.card || '#1e293b' : theme.colors.background || '#ffffff',
       bgHeader: isDark ? theme.colors.card || '#374151' : theme.colors.background || '#f3f4f6',
       textSecondary: isDark ? theme.colors.textSecondary || '#9ca3af' : theme.colors.textSecondary || '#6b7280',
-      bgRangeStart: isDark ? 'rgba(16, 185, 129, 0.2)' : 'rgba(16, 185, 129, 0.1)',
-      bgRangeEnd: isDark ? 'rgba(16, 185, 129, 0.3)' : 'rgba(16, 185, 129, 0.2)',
-      bgRangeMiddle: isDark ? 'rgba(16, 185, 129, 0.1)' : 'rgba(16, 185, 129, 0.05)',
     };
   };
 
@@ -86,23 +64,8 @@ const MonthPickerModal: React.FC<MonthPickerModalProps> = ({
       // 计算基准年份，使当前选中的年份处于网格较中间的位置
       // 这里算法是：找到当前年份所属的12年区间的起始位置
       setYearBasis(Math.floor(initialYear / 12) * 12);
-      
-      // 如果是范围选择模式，初始化范围选择状态
-      if (enableRangeSelection) {
-        setRangeSelectionStep('start');
-        if (initialStartYear && initialStartMonth) {
-          setStartYear(initialStartYear);
-          setStartMonth(initialStartMonth);
-          setSelectedYear(initialStartYear);
-          setSelectedMonth(initialStartMonth);
-        }
-        if (initialEndYear && initialEndMonth) {
-          setEndYear(initialEndYear);
-          setEndMonth(initialEndMonth);
-        }
-      }
     }
-  }, [visible, initialYear, initialMonth, initialStartYear, initialStartMonth, initialEndYear, initialEndMonth, enableRangeSelection]);
+  }, [visible, initialYear, initialMonth]);
 
   // 解析日期限制
   const parseDateLimit = (dateString?: string) => {
@@ -139,27 +102,6 @@ const MonthPickerModal: React.FC<MonthPickerModalProps> = ({
 
   // 生成年份数据 (12个)
   const yearsGrid = Array.from({ length: 12 }, (_, i) => yearBasis + i);
-
-  // 检查日期是否在范围内
-  const isDateInRange = (year: number, month: number) => {
-    if (!enableRangeSelection) return false;
-    
-    const startDate = new Date(startYear, startMonth - 1);
-    const endDate = new Date(endYear, endMonth - 1);
-    const currentDate = new Date(year, month - 1);
-    
-    return currentDate >= startDate && currentDate <= endDate;
-  };
-
-  // 检查日期是否是范围开始
-  const isDateRangeStart = (year: number, month: number) => {
-    return enableRangeSelection && year === startYear && month === startMonth;
-  };
-
-  // 检查日期是否是范围结束
-  const isDateRangeEnd = (year: number, month: number) => {
-    return enableRangeSelection && year === endYear && month === endMonth;
-  };
 
   // --- 逻辑处理 ---
 
@@ -230,53 +172,8 @@ const MonthPickerModal: React.FC<MonthPickerModalProps> = ({
     }
   };
 
-  // 处理月份选择
-  const handleMonthSelect = (month: number) => {
-    if (!isMonthAllowed(selectedYear, month)) return;
-    
-    if (enableRangeSelection) {
-      if (rangeSelectionStep === 'start') {
-        setStartYear(selectedYear);
-        setStartMonth(month);
-        setSelectedYear(selectedYear);
-        setSelectedMonth(month);
-        setRangeSelectionStep('end');
-      } else {
-        // 确保结束日期不早于开始日期
-        const startDate = new Date(startYear, startMonth - 1);
-        const potentialEndDate = new Date(selectedYear, month - 1);
-        
-        if (potentialEndDate >= startDate) {
-          setEndYear(selectedYear);
-          setEndMonth(month);
-          setSelectedYear(selectedYear);
-          setSelectedMonth(month);
-        } else {
-          // 如果选择的结束日期早于开始日期，则交换它们
-          setEndYear(startYear);
-          setEndMonth(startMonth);
-          setStartYear(selectedYear);
-          setStartMonth(month);
-          setSelectedYear(selectedYear);
-          setSelectedMonth(month);
-        }
-      }
-    } else {
-      setSelectedMonth(month);
-    }
-  };
-
-  // 确认选择
   const handleConfirm = () => {
-    if (enableRangeSelection) {
-      if (onRangeConfirm) {
-        onRangeConfirm(startYear, startMonth, endYear, endMonth);
-      }
-    } else {
-      if (onConfirm) {
-        onConfirm(selectedYear, selectedMonth);
-      }
-    }
+    onConfirm(selectedYear, selectedMonth);
     onClose();
   };
 
@@ -301,10 +198,7 @@ const MonthPickerModal: React.FC<MonthPickerModalProps> = ({
                   </TouchableOpacity>
                   
                   <Text className="text-lg font-semibold" style={{ color: themeColors.textMain }}>
-                    {enableRangeSelection 
-                      ? (rangeSelectionStep === 'start' ? '选择开始月份' : '选择结束月份')
-                      : (mode === 'month' ? '选择月份' : '选择年份')
-                    }
+                    {mode === 'month' ? '选择月份' : '选择年份'}
                   </Text>
                   
                   <TouchableOpacity onPress={handleConfirm} hitSlop={10}>
@@ -316,15 +210,6 @@ const MonthPickerModal: React.FC<MonthPickerModalProps> = ({
                     </Text>
                   </TouchableOpacity>
                 </View>
-
-                {/* 范围选择模式下显示已选择的范围 */}
-                {enableRangeSelection && (
-                  <View className="mb-4 p-3 rounded-lg" style={{ backgroundColor: themeColors.bgHeader }}>
-                    <Text className="text-center" style={{ color: themeColors.textMain }}>
-                      已选择范围: {startYear}-{startMonth.toString().padStart(2, '0')} 至 {endYear}-{endMonth.toString().padStart(2, '0')}
-                    </Text>
-                  </View>
-                )}
 
                 {/* 2. 中间导航栏 (上一个/显示区/下一个) */}
                 <View className="flex-row justify-between items-center mb-6 px-4">
@@ -374,28 +259,17 @@ const MonthPickerModal: React.FC<MonthPickerModalProps> = ({
                     months.map((month) => {
                       const isSelected = month === selectedMonth;
                       const isDisabled = !isMonthAllowed(selectedYear, month);
-                      
-                      // 范围选择相关的样式状态
-                      const isRangeStart = isDateRangeStart(selectedYear, month);
-                      const isRangeEnd = isDateRangeEnd(selectedYear, month);
-                      const isInRange = isDateInRange(selectedYear, month);
-                      
                       return (
                         <TouchableOpacity
                           key={month}
-                          onPress={() => !isDisabled && handleMonthSelect(month)}
+                          onPress={() => !isDisabled && setSelectedMonth(month)}
                           className="w-[31%] mb-3 py-3 rounded-xl border items-center justify-center"
                           style={{
                             backgroundColor: isSelected ? themeColors.primary : 
-                              isRangeStart ? themeColors.bgRangeStart :
-                              isRangeEnd ? themeColors.bgRangeEnd :
-                              isInRange ? themeColors.bgRangeMiddle :
                               isDisabled ? themeColors.bgHeader : themeColors.bgCard,
                             borderColor: isSelected ? themeColors.primary : 
-                              isRangeStart || isRangeEnd ? themeColors.primary :
                               isDisabled ? themeColors.border : themeColors.border,
                             opacity: isDisabled ? 0.5 : 1,
-                            borderWidth: isRangeStart || isRangeEnd ? 2 : 1,
                           }}
                           disabled={isDisabled}
                         >
@@ -403,7 +277,6 @@ const MonthPickerModal: React.FC<MonthPickerModalProps> = ({
                             className="text-base font-medium"
                             style={{
                               color: isSelected ? themeColors.textOnPrimary : 
-                                isRangeStart || isRangeEnd ? themeColors.primary :
                                 isDisabled ? themeColors.textSecondary : themeColors.textMain,
                             }}
                           >

@@ -2,16 +2,22 @@ import { CURRENCIES } from '@/constants/data';
 import { useTheme } from '@/context/ThemeContext';
 import { Account } from '@/db/repositories/AccountRepository';
 import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
+import React, { useState } from 'react';
 import { FlatList, Modal, Pressable, Text, useColorScheme, View } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
 
 interface AccountSelectModalProps {
   visible: boolean;
-  onClose: () => void;
-  onSelect: (account: Account) => void;
+  onClose?: () => void;
+  onSelect?: (account: Account) => void;
   selectedId?: string; // 当前选中的账户ID
   data?: Account[]; // 账户数据
+  // 新增多选相关属性
+  enableMultipleSelection?: boolean; // 是否启用多选模式
+  selectedIds?: string[]; // 当前选中的账户ID数组（多选模式）
+  onMultipleSelect?: (accounts: Account[]) => void; // 多选确认回调
+  confirmButtonText?: string; // 确认按钮文字
+  maxSelection?: number; // 最大选择数量
 }
 
 const AccountSelectModal: React.FC<AccountSelectModalProps> = ({
@@ -19,13 +25,22 @@ const AccountSelectModal: React.FC<AccountSelectModalProps> = ({
   onClose,
   onSelect,
   selectedId,
-  data = []
+  data = [],
+  // 多选相关属性
+  enableMultipleSelection = false,
+  selectedIds = [],
+  onMultipleSelect,
+  confirmButtonText = "确认",
+  maxSelection
 }) => {
   const {
     theme
   } = useTheme()
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  
+  // 多选状态管理
+  const [multipleSelectedIds, setMultipleSelectedIds] = useState<string[]>(selectedIds);
 
   // 获取账户类型对应的图标
   const getAccountIcon = (type: string): keyof typeof Ionicons.glyphMap => {
@@ -47,10 +62,10 @@ const AccountSelectModal: React.FC<AccountSelectModalProps> = ({
     }
   };
 
-
   // 渲染单个列表项
   const renderItem = ({ item }: { item: Account }) => {
-    const isSelected = selectedId === item.id;
+    // 单选模式：检查单个选中项
+    const isSelected = !enableMultipleSelection ? selectedId === item.id : multipleSelectedIds.includes(item.id);
     
     // 选中时文字用 primary，未选中跟随主题
     const textColorClass = isSelected
@@ -60,8 +75,28 @@ const AccountSelectModal: React.FC<AccountSelectModalProps> = ({
     return (
       <Pressable
         onPress={() => {
-          onSelect(item);
-          onClose();
+          if (enableMultipleSelection) {
+            // 多选模式：切换选中状态
+            let newSelectedIds: string[];
+            
+            if (multipleSelectedIds.includes(item.id)) {
+              // 如果已选中，则取消选中
+              newSelectedIds = multipleSelectedIds.filter(id => id !== item.id);
+            } else {
+              // 如果未选中，则添加选中
+              // 检查是否超过最大选择数量
+              if (maxSelection && multipleSelectedIds.length >= maxSelection) {
+                return; // 超过最大选择数量，不执行任何操作
+              }
+              newSelectedIds = [...multipleSelectedIds, item.id];
+            }
+            
+            setMultipleSelectedIds(newSelectedIds);
+          } else {
+            // 单选模式：直接调用回调并关闭弹窗
+            onSelect?.(item);
+            onClose?.();  
+          }
         }}
         className={`
           flex-row items-center justify-between p-4 rounded-xl mb-2
@@ -97,13 +132,35 @@ const AccountSelectModal: React.FC<AccountSelectModalProps> = ({
           </View>
         </View>
 
-        {/* 选中状态打钩 (Ionicons) */}
+        {/* 选中状态显示 */}
         {isSelected && (
-          <Ionicons name="checkmark-circle" size={22} color={theme.colors.primary} />
+          enableMultipleSelection ? (
+            // 多选模式：显示复选框
+            <Ionicons name="checkbox" size={22} color={theme.colors.primary} />
+          ) : (
+            // 单选模式：显示圆圈选中
+            <Ionicons name="checkmark-circle" size={22} color={theme.colors.primary} />
+          )
         )}
       </Pressable>
     );
   };
+
+  // 处理多选确认
+  const handleConfirm = () => {
+    if (enableMultipleSelection && onMultipleSelect) {
+      const selectedAccounts = data.filter(account => multipleSelectedIds.includes(account.id));
+      onMultipleSelect(selectedAccounts);
+    }
+    onClose?.();  
+  };
+
+  // 重置多选状态
+  React.useEffect(() => {
+    if (visible) {
+      setMultipleSelectedIds(selectedIds);
+    }
+  }, [visible, selectedIds]);
 
   return (
     <Modal
@@ -127,7 +184,7 @@ const AccountSelectModal: React.FC<AccountSelectModalProps> = ({
             
             <View className="w-full flex-row justify-between items-center px-5 border-b border-gray-100 dark:border-slate-700 pb-3">
               <Text className="text-lg font-bold text-gray-800 dark:text-gray-100">
-                选择账户
+                {enableMultipleSelection ? '选择账户' : '选择账户'}
               </Text>
               <Pressable onPress={onClose} hitSlop={10}>
                 <Ionicons name="close" size={24} color={isDark ? '#9ca3af' : '#6b7280'} />
@@ -141,7 +198,7 @@ const AccountSelectModal: React.FC<AccountSelectModalProps> = ({
               data={data}
               keyExtractor={(item) => item.id}
               renderItem={renderItem}
-              contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
+              contentContainerStyle={{ padding: 20, paddingBottom: enableMultipleSelection ? 120 : 40 }}
               showsVerticalScrollIndicator={false}
             />
           ) : (
@@ -155,10 +212,51 @@ const AccountSelectModal: React.FC<AccountSelectModalProps> = ({
               </Text>
             </View>
           )}
+          
+          {/* 多选模式底部按钮区域 */}
+          {enableMultipleSelection && (
+            <View className="absolute bottom-0 left-0 right-0 px-5 py-3 border-t border-gray-100 dark:border-slate-700 bg-card dark:bg-card-dark" style={{
+              backgroundColor: theme.colors.card
+            }}>
+              <View className="flex-row justify-between items-center mb-3">
+                <Text className="text-sm text-gray-500 dark:text-gray-400">
+                  已选择 {multipleSelectedIds.length} 项
+                  {maxSelection && ` (最多${maxSelection}项)`}
+                </Text>
+                {multipleSelectedIds.length > 0 && (
+                  <Pressable 
+                    onPress={() => setMultipleSelectedIds([])}
+                  >
+                    <Text className="text-sm text-primary">清空</Text>
+                  </Pressable>
+                )}
+              </View>
+              
+              <Pressable
+                className={`py-3 rounded-xl items-center justify-center ${
+                  multipleSelectedIds.length > 0 
+                    ? 'bg-primary' 
+                    : 'bg-gray-300 dark:bg-gray-700'
+                }`}
+                onPress={handleConfirm}
+                disabled={multipleSelectedIds.length === 0}
+              >
+                <Text className={`font-medium ${
+                  multipleSelectedIds.length > 0 
+                    ? 'text-white' 
+                    : 'text-gray-500 dark:text-gray-400'
+                }`}>
+                  {confirmButtonText}
+                </Text>
+              </Pressable>
+            </View>
+          )}
         </View>
         
         {/* 底部安全区填充 */}
-        <SafeAreaView className="bg-card dark:bg-card-dark" />
+        <SafeAreaView className="bg-card dark:bg-card-dark" style={{
+          backgroundColor: theme.colors.card
+        }} />
       </View>
     </Modal>
   );

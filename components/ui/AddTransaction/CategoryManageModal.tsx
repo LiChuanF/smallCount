@@ -4,7 +4,7 @@ import { TagService } from "@/db/services/TagService";
 import useDataStore from "@/storage/store/useDataStore";
 import { addAlphaToColor } from "@/theme/colors";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -32,8 +32,16 @@ interface CategoryManageModalProps {
   visible: boolean;
   onClose: () => void;
   categories: NewTag[];
-  currentType: NewTag["type"] & string; // 'expense' | 'income'
-  onUpdateCategories: (newCategories: NewTag[]) => void;
+  currentType: NewTag["type"];
+  onUpdateCategories: (categories: NewTag[]) => void;
+  // 选择功能相关属性
+  enableSelection?: boolean; // 是否启用选择模式
+  selectionMode?: 'single' | 'multiple'; // 选择模式：单选或多选
+  selectedIds?: string[]; // 已选中的分类ID数组
+  onSelectionChange?: (selectedIds: string[]) => void; // 选择变化时的回调
+  maxSelection?: number; // 多选模式下最大选择数量
+  confirmButtonText?: string; // 确认按钮文本
+  showEditButtons?: boolean; // 是否显示编辑和删除按钮
 }
 
 // 预设的可选图标
@@ -79,26 +87,79 @@ const AVAILABLE_COLORS = [
   "#eb3b5a",
 ];
 
-export const CategoryManageModal: React.FC<CategoryManageModalProps> = ({
+const CategoryManageModal: React.FC<CategoryManageModalProps> = ({
   visible,
   onClose,
   categories,
   currentType,
   onUpdateCategories,
+  // 选择功能相关属性，设置默认值
+  enableSelection = false,
+  selectionMode = 'single',
+  selectedIds = [],
+  onSelectionChange,
+  maxSelection,
+  confirmButtonText = '确定',
+  showEditButtons = true,
 }) => {
   const { theme } = useTheme();
-  const {
-    addTag,
-    updateTag
-  } = useDataStore()
-  // 模式：'list' (列表) | 'edit' (编辑/新增)
   const [mode, setMode] = useState<"list" | "edit">("list");
-
-  // 编辑表单状态
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formName, setFormName] = useState("");
   const [formIcon, setFormIcon] = useState(AVAILABLE_ICONS[0]);
   const [formColor, setFormColor] = useState(AVAILABLE_COLORS[0]);
+  
+  // 选择模式状态管理
+  const [internalSelectedIds, setInternalSelectedIds] = useState<string[]>(selectedIds);
+  
+  // 当外部传入的selectedIds变化时，同步内部状态
+  useEffect(() => {
+    setInternalSelectedIds(selectedIds);
+  }, [selectedIds]);
+  
+  // 处理单个项目的选择/取消选择
+  const handleToggleSelection = (categoryId: string) => {
+    let newSelectedIds: string[];
+    
+    if (selectionMode === 'single') {
+      // 单选模式：直接替换为当前选中的ID
+      newSelectedIds = [categoryId];
+    } else {
+      // 多选模式：切换选中状态
+      if (internalSelectedIds.includes(categoryId)) {
+        // 如果已选中，则取消选中
+        newSelectedIds = internalSelectedIds.filter(id => id !== categoryId);
+      } else {
+        // 如果未选中，则添加选中
+        // 检查是否超过最大选择数量
+        if (maxSelection && internalSelectedIds.length >= maxSelection) {
+          alert(`最多只能选择${maxSelection}个分类`);
+          return;
+        }
+        newSelectedIds = [...internalSelectedIds, categoryId];
+      }
+    }
+    
+    // 更新内部状态
+    setInternalSelectedIds(newSelectedIds);
+    
+    // 调用外部回调
+    if (onSelectionChange) {
+      onSelectionChange(newSelectedIds);
+    }
+  };
+  
+  // 处理确认选择
+  const handleConfirmSelection = () => {
+    if (onSelectionChange) {
+      onSelectionChange(internalSelectedIds);
+    }
+    onClose();
+  };
+  const {
+    addTag,
+    updateTag
+  } = useDataStore()
 
   // modal会脱离root节点，导致自定义var样式失效，所以需要在modal中包裹一个view
   const styles = StyleSheet.create({
@@ -269,11 +330,13 @@ export const CategoryManageModal: React.FC<CategoryManageModalProps> = ({
               </Text>
             </TouchableOpacity>
             <Text className="text-lg font-bold text-text dark:text-white">
-              {mode === "edit"
-                ? editingId
-                  ? "编辑分类"
-                  : "新增分类"
-                : "分类管理"}
+              {enableSelection
+                ? (selectionMode === 'multiple' ? '选择分类' : '选择分类')
+                : (mode === "edit"
+                  ? editingId
+                    ? "编辑分类"
+                    : "新增分类"
+                  : "分类管理")}
             </Text>
             {mode === "edit" ? (
               <TouchableOpacity onPress={handleSave}>
@@ -282,6 +345,15 @@ export const CategoryManageModal: React.FC<CategoryManageModalProps> = ({
                   style={{ color: theme.colors.primary }}
                 >
                   保存
+                </Text>
+              </TouchableOpacity>
+            ) : enableSelection ? (
+              <TouchableOpacity onPress={handleConfirmSelection}>
+                <Text
+                  className="text-primary font-bold text-base"
+                  style={{ color: theme.colors.primary }}
+                >
+                  {confirmButtonText}
                 </Text>
               </TouchableOpacity>
             ) : (
@@ -297,11 +369,30 @@ export const CategoryManageModal: React.FC<CategoryManageModalProps> = ({
               // --- 列表视图 ---
               <View className="pb-4">
                 {categories.map((item) => (
-                  <View
+                  <TouchableOpacity
                     key={item.id}
                     className="flex-row items-center justify-between py-3 border-b border-gray-200 dark:border-neutral-700"
+                    onPress={() => enableSelection ? handleToggleSelection(item.id) : null}
                   >
                     <View className="flex-row items-center gap-3">
+                      {/* 选择模式下显示选择框 */}
+                      {enableSelection && (
+                        <View
+                          className="w-5 h-5 rounded-full border-2 items-center justify-center"
+                          style={{
+                            borderColor: internalSelectedIds.includes(item.id)
+                              ? theme.colors.primary
+                              : theme.colors.border
+                          }}
+                        >
+                          {internalSelectedIds.includes(item.id) && (
+                            <View
+                              className="w-3 h-3 rounded-full"
+                              style={{ backgroundColor: theme.colors.primary }}
+                            />
+                          )}
+                        </View>
+                      )}
                       <View
                         className="w-10 h-10 rounded-full items-center justify-center"
                         style={{ borderWidth: 2, borderColor: item.color as string }}
@@ -316,33 +407,36 @@ export const CategoryManageModal: React.FC<CategoryManageModalProps> = ({
                         {item.name}
                       </Text>
                     </View>
-                    <View className="flex-row gap-4">
-                      {item.isDefault || (
-                        <>
-                          <TouchableOpacity
-                            onPress={() => handleStartEdit(item)}
-                          >
-                            <Ionicons
-                              name="create-outline"
-                              size={22}
-                              className="text-textSecondary"
-                              color="#6b7280"
-                            />
-                          </TouchableOpacity>
+                    {/* 非选择模式或选择模式下允许编辑时显示编辑按钮 */}
+                    {(!enableSelection || (enableSelection && showEditButtons)) && (
+                      <View className="flex-row gap-4">
+                        {item.isDefault || (
+                          <>
+                            <TouchableOpacity
+                              onPress={() => handleStartEdit(item)}
+                            >
+                              <Ionicons
+                                name="create-outline"
+                                size={22}
+                                className="text-textSecondary"
+                                color="#6b7280"
+                              />
+                            </TouchableOpacity>
 
-                          <TouchableOpacity
-                            onPress={() => handleDelete(item.id)}
-                          >
-                            <Ionicons
-                              name="trash-outline"
-                              size={22}
-                              color="#ef4444"
-                            />
-                          </TouchableOpacity>
-                        </>
-                      )}
-                    </View>
-                  </View>
+                            <TouchableOpacity
+                              onPress={() => handleDelete(item.id)}
+                            >
+                              <Ionicons
+                                name="trash-outline"
+                                size={22}
+                                color="#ef4444"
+                              />
+                            </TouchableOpacity>
+                          </>
+                        )}
+                      </View>
+                    )}
+                  </TouchableOpacity>
                 ))}
                 {/* 底部占位 */}
                 <View className="h-8" />
@@ -450,3 +544,5 @@ export const CategoryManageModal: React.FC<CategoryManageModalProps> = ({
     </Modal>
   );
 };
+
+export default CategoryManageModal;

@@ -4,7 +4,7 @@ import { addAlphaToColor } from '@/theme/colors';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { FlatList, Text, TouchableOpacity, View } from 'react-native';
-import { CategoryManageModal } from './CategoryManageModal'; // 引入新组件
+import CategoryManageModal from './CategoryManageModal';
 
 interface CategoryGridProps {
   categories: NewTag[];

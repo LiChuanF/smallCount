@@ -6,6 +6,7 @@ import { useNavigation } from "@react-navigation/native"; // 或者使用 expo-r
 import { Buffer } from "buffer";
 import * as DocumentPicker from "expo-document-picker";
 import { EncodingType, readAsStringAsync } from "expo-file-system/legacy";
+import { router } from "expo-router";
 import iconv from "iconv-lite";
 import React, { useState } from "react";
 import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
@@ -591,7 +592,7 @@ export default function ImportScreen() {
             iconColor="#ffffff"
             bgIconColor="bg-gray-400 dark:bg-gray-600"
             title="通用 CSV/Excel 文件"
-            subtitle="支持自定义模板导入"
+            subtitle="按照标准模板导入"
             onPress={() => handlePickDocument("csv")}
           />
         </View>
@@ -608,7 +609,7 @@ export default function ImportScreen() {
             bgIconColor="bg-gray-100 dark:bg-gray-800"
             title="导出 Excel / CSV"
             subtitle="备份所有账单数据，支持 Excel 和 CSV 格式"
-            onPress={() => Alert.alert("功能开发中", "导出功能即将上线")}
+            onPress={() => router.push("/dataExport")}
           />
         </View>
 
