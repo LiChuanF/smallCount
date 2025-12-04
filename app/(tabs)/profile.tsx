@@ -1,6 +1,7 @@
 import { useTheme } from "@/context/ThemeContext";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Haptics from "expo-haptics";
+import { router } from "expo-router";
 import React from "react";
 import { Linking, Pressable, ScrollView, Switch, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -124,38 +125,28 @@ export default function ProfilePage() {
         },
       ],
     },
-    // {
-    //   key: "other",
-    //   label: "其他设置",
-    //   children: [
-    //     {
-    //       key: "reset",
-    //       render: () => (
-    //         <SettingItem
-    //           label="多账本管理"
-    //           onPress={() => {}}
-    //           showArrow={true}
-    //         />
-    //       ),
-    //     },
-    //     {
-    //       key: "data",
-    //       render: () => (
-    //         <SettingItem label="数据管理" onPress={() => {}} showArrow={true} />
-    //       ),
-    //     },
-    //     {
-    //       key: "backup",
-    //       render: () => (
-    //         <SettingItem
-    //           label="备份与恢复"
-    //           onPress={() => {}}
-    //           showArrow={true}
-    //         />
-    //       ),
-    //     },
-    //   ],
-    // },
+    {
+      key: "data",
+      label: "数据设置",
+      children: [
+        {
+          key: "import",
+          render: () => (
+            <SettingItem label="数据管理" onPress={() => {router.push("/importScreen")}} showArrow={true} />
+          ),
+        },
+        // {
+        //   key: "backup",
+        //   render: () => (
+        //     <SettingItem
+        //       label="备份与恢复"
+        //       onPress={() => {}}
+        //       showArrow={true}
+        //     />
+        //   ),
+        // },
+      ],
+    },
     {
       key: "other",
       label: "其他设置",
@@ -200,7 +191,7 @@ export default function ProfilePage() {
           {/* Minimal Profile Layout */}
           <View className="items-center mb-10">
             <View className="w-20 h-20 rounded-full bg-primary items-center justify-center mb-4">
-              <Text className=" text-2xl font-bold text-gray-600 dark:text-gray-300">
+              <Text className="text-white text-2xl font-bold">
                 M
               </Text>
             </View>

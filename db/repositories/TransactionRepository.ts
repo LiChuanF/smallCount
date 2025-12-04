@@ -19,7 +19,7 @@ export class TransactionRepository extends BaseRepository<Transaction> {
 
   // 创建交易 (需要事务处理：更新余额)
   async createTransactionWithBalanceUpdate(
-    data: Omit<NewTransaction, "id" | "createdAt" | "updatedAt" | "categoryId">
+    data: Omit<NewTransaction, "id" | "createdAt" | "updatedAt" >
   ): Promise<Transaction> {
     return await this.db.transaction(async (tx) => {
       const id = this.generateId();
@@ -70,6 +70,75 @@ export class TransactionRepository extends BaseRepository<Transaction> {
       return newTx;
     });
   }
+
+  /**
+   *  批量创建交易记录 （需要事务处理 ：更新余额）如果需要将数据插入到不同账户，则传入的data数据中需要包含accountId字段
+   * @param dataArray 
+   * @returns 
+   */
+  async createBatchTransactionsWithBalanceUpdate(
+    dataArray: Omit<NewTransaction, "id" | "createdAt" | "updatedAt">[]
+  ): Promise<Transaction[]> {
+    return await this.db.transaction(async (tx) => {
+      // 1. 为每条交易记录生成ID并准备插入数据
+      const transactionsToInsert = dataArray.map(data => ({
+        ...data,
+        id: this.generateId(),
+        updatedAt: new Date(),
+      }));
+
+      // 2. 批量插入交易记录
+      const newTransactions = await tx
+        .insert(transactions)
+        .values(transactionsToInsert)
+        .returning();
+
+      // 3. 按账户分组，计算每个账户的余额变化
+      const accountBalanceChanges = new Map<string, Big>();
+      
+      for (const transaction of newTransactions) {
+        const accountId = transaction.accountId;
+        const amount = new Big(transaction.amount);
+        
+        // 初始化账户余额变化（如果不存在）
+        if (!accountBalanceChanges.has(accountId)) {
+          accountBalanceChanges.set(accountId, new Big(0));
+        }
+        
+        // 根据交易类型更新余额变化
+        if (transaction.type === "expense") {
+          accountBalanceChanges.set(accountId, accountBalanceChanges.get(accountId)!.minus(amount));
+        } else if (transaction.type === "income") {
+          accountBalanceChanges.set(accountId, accountBalanceChanges.get(accountId)!.plus(amount));
+        }
+        // 转账类型需要更复杂的处理，这里暂时不处理
+      }
+
+      // 4. 一次性更新所有账户的余额
+      for (const [accountId, balanceChange] of accountBalanceChanges.entries()) {
+        // 获取当前账户余额
+        const account = await tx.query.accounts.findFirst({
+          where: eq(accounts.id, accountId),
+        });
+        
+        if (account) {
+          const currentBalance = new Big(account.balance || 0);
+          const newBalance = currentBalance.plus(balanceChange);
+          
+          // 更新账户余额
+          await tx
+            .update(accounts)
+            .set({ balance: newBalance.toNumber() })
+            .where(eq(accounts.id, accountId));
+        }
+      }
+
+      return newTransactions;
+    });
+  }
+
+  // 批量创建交易记录 （需要事务处理 ：更新余额）
+ 
 
   // 获取某月交易列表（按账户、年、月过滤）
   async findByMonth(

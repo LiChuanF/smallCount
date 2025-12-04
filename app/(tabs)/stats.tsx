@@ -125,7 +125,7 @@ export default function StatsScreen() {
           <Text className="text-text text-3xl font-bold mb-1">
             ¥{currentData.total || "0.00"}
           </Text>
-          <View className="flex-row items-center bg-red-100 dark:bg-red-900/20 px-2 py-0.5 rounded text-xs">
+          <View className="flex-row items-center bg-red-100 dark:bg-red-900/30 px-2 py-0.5 rounded text-xs">
             <Text className={`text-[10px] mr-1 ${comparisonData && comparisonData.percentageChange > 0 ? 'text-red-500' : 'text-green-500'}`}>
               {comparisonData ? (
                 comparisonData.percentageChange > 0 ? 

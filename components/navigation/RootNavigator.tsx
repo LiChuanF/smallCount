@@ -4,11 +4,17 @@ import {
   Theme as NavigationTheme,
   ThemeProvider,
 } from "@react-navigation/native";
+import { Buffer } from 'buffer';
 import { Stack } from "expo-router";
 import { vars } from "nativewind"; // NativeWind 提供的变量注入工具
 import React from "react";
 import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+if (typeof global.Buffer === 'undefined') {
+  global.Buffer = Buffer;
+}
+
+
 export const RootNavigator = () => {
   const { theme } = useTheme();
 
@@ -74,6 +80,10 @@ export const RootNavigator = () => {
               <Stack.Screen
                 name="transaction/[...rest]"
                 options={{ presentation: "modal", title: "添加交易", headerShown: false }}
+              />
+              <Stack.Screen
+                name="importScreen"
+                options={{ presentation: "modal", title: "数据管理", headerShown: false }}
               />
             </Stack>
           </DatabaseProvider>

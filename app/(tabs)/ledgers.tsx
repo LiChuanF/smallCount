@@ -141,7 +141,7 @@ export default function AccountsScreen() {
               <Text className="text-sm font-medium text-gray-500 dark:text-gray-400">
                 当前选中账户
               </Text>
-              <View className="px-2 py-1 bg-primary/10 rounded-full">
+              <View className="px-2 py-1 bg-primary/20 rounded-full">
                 <Text className="text-xs font-medium text-primary">
                   当前使用
                 </Text>

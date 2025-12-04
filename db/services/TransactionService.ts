@@ -77,6 +77,27 @@ export const TransactionService = {
   },
 
   /**
+   * 批量创建交易记录（包含余额更新）
+   * @param transactionsData - 交易数据列表
+   * @returns 创建的交易对象列表
+   */
+  async createTransactionsBatch(transactionsData: Omit<NewTransaction, 'id' | 'createdAt' | 'updatedAt'>[]) {
+    // 批量创建交易记录
+    const createdTransactions = await transactionRepo.createBatchTransactionsWithBalanceUpdate(transactionsData);
+    
+    // 为交易记录添加标签和支付方式信息
+    const enrichedTransactions = await this.enrichTransactionsWithTagsAndPaymentMethods({
+      items: createdTransactions,
+      total: createdTransactions.length,
+      page: 1,
+      pageSize: createdTransactions.length,
+      totalPages: 1
+    });
+    
+    return enrichedTransactions;
+  },
+
+  /**
    * 私有方法：为交易记录添加标签和支付方式信息
    * @param result - 包含交易记录的结果对象
    * @returns 带有标签和支付方式信息的交易记录列表

@@ -1,0 +1,613 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>small_count Extensions - Data Import & AI Chat</title>
+    <style>
+      /* =========================================
+         1. CORE DESIGN SYSTEM (从原文件提取)
+         ========================================= */
+      :root {
+        /* --- Colors --- */
+        --accent-green: #10b981;
+        --accent-blue: #3b82f6;
+        --accent-purple: #8b5cf6;
+        --accent-orange: #f59e0b;
+        --primary: var(--accent-green);
+        --danger: #ef4444;
+
+        /* --- Dimensions --- */
+        --screen-w: 375px;
+        --screen-h: 812px;
+
+        /* --- Light Theme (Default) --- */
+        --bg-app: #f3f4f6;
+        --bg-card: #ffffff;
+        --text-main: #1f2937;
+        --text-sub: #6b7280;
+        --text-on-primary: #ffffff;
+        --border: #e5e7eb;
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        --input-bg: #f3f4f6;
+        --pill-bg: #e5e7eb;
+        --icon-bg: #f3f4f6;
+      }
+
+      /* --- Dark Theme Overrides --- */
+      [data-theme="dark"] {
+        --bg-app: #000000;
+        --bg-card: #1c1c1e;
+        --text-main: #f3f4f6;
+        --text-sub: #9ca3af;
+        --text-on-primary: #ffffff;
+        --border: #2c2c2e;
+        --shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        --input-bg: #2c2c2e;
+        --pill-bg: #2c2c2e;
+        --icon-bg: #2c2c2e;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        transition: background-color 0.3s, color 0.3s, border-color 0.3s, box-shadow 0.3s;
+      }
+
+      body {
+        background-color: #121212;
+        height: 100vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* --- Presentation Canvas --- */
+      .toolbar {
+        height: 60px;
+        background: #1f1f1f;
+        color: white;
+        display: flex;
+        align-items: center;
+        padding: 0 24px;
+        border-bottom: 1px solid #333;
+        justify-content: space-between;
+        z-index: 100;
+      }
+
+      .btn-toggle {
+        background: #333;
+        border: 1px solid #444;
+        color: white;
+        padding: 6px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .canvas {
+        flex: 1;
+        overflow: auto;
+        display: flex;
+        padding: 60px;
+        gap: 60px;
+        align-items: flex-start;
+        justify-content: center;
+        background: #121212;
+      }
+
+      /* --- Device Frame --- */
+      .device-mockup {
+        width: var(--screen-w);
+        height: var(--screen-h);
+        background: var(--bg-app);
+        border-radius: 40px;
+        position: relative;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        overflow: hidden;
+        flex-shrink: 0;
+        border: 8px solid #1a1a1a;
+      }
+
+      .notch {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 120px;
+        height: 30px;
+        background: #000;
+        border-bottom-left-radius: 16px;
+        border-bottom-right-radius: 16px;
+        z-index: 999;
+      }
+
+      .screen-content {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        padding-top: 44px;
+        padding-bottom: 34px; /* Safe area */
+        color: var(--text-main);
+        overflow-y: auto;
+      }
+      
+      .screen-content::-webkit-scrollbar { display: none; }
+
+      /* --- Common Components --- */
+      .header-nav {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 16px 16px 16px;
+        background: var(--bg-app);
+        position: sticky;
+        top: 0;
+        z-index: 50;
+      }
+
+      .h1 { font-size: 24px; font-weight: 700; color: var(--text-main); }
+      .h2 { font-size: 18px; font-weight: 600; color: var(--text-main); }
+      .text-sm { font-size: 12px; color: var(--text-sub); }
+      .text-md { font-size: 14px; color: var(--text-main); }
+      .font-bold { font-weight: 600; }
+      
+      .icon { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+      .icon-sm { width: 16px; height: 16px; }
+
+      .pill {
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-size: 10px;
+        background: var(--pill-bg);
+        color: var(--text-sub);
+        display: inline-flex;
+        align-items: center;
+      }
+
+      .screen-label {
+        position: absolute;
+        top: -40px;
+        left: 0;
+        color: white;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+      }
+
+      /* =========================================
+         2. NEW FEATURES STYLES
+         ========================================= */
+
+      /* --- Feature A: Data Import Cards --- */
+      .import-section {
+        padding: 0 16px;
+      }
+
+      .import-card {
+        background: var(--bg-card);
+        padding: 20px;
+        border-radius: 16px;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        box-shadow: var(--shadow);
+        border: 2px solid transparent;
+        cursor: pointer;
+        transition: all 0.2s;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .import-card:active {
+        transform: scale(0.98);
+        border-color: var(--border);
+      }
+
+      .import-icon-box {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        color: white;
+        flex-shrink: 0;
+        position: relative;
+        z-index: 1;
+      }
+
+      .bg-wx { background: #22c55e; }
+      .bg-ali { background: #3b82f6; }
+      .bg-csv { background: var(--text-sub); }
+
+      .card-deco {
+        position: absolute;
+        right: -10px;
+        bottom: -10px;
+        opacity: 0.05;
+        font-size: 80px;
+        pointer-events: none;
+        color: var(--text-main);
+      }
+
+      /* --- Feature B: AI Chat UI --- */
+      .chat-wrapper {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+
+      .chat-container {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      .chat-bubble {
+        max-width: 80%;
+        padding: 12px 16px;
+        font-size: 14px;
+        line-height: 1.5;
+        position: relative;
+        word-wrap: break-word;
+        animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      }
+
+      @keyframes popIn {
+        from { opacity: 0; transform: scale(0.9) translateY(10px); }
+        to { opacity: 1; transform: scale(1) translateY(0); }
+      }
+
+      .chat-bubble.ai {
+        align-self: flex-start;
+        background: var(--bg-card);
+        color: var(--text-main);
+        border-radius: 4px 16px 16px 16px;
+        box-shadow: var(--shadow);
+      }
+
+      .chat-bubble.user {
+        align-self: flex-end;
+        background: var(--primary);
+        color: var(--text-on-primary);
+        border-radius: 16px 16px 4px 16px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      }
+
+      .chat-input-area {
+        padding: 12px 16px;
+        background: var(--bg-card);
+        border-top: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        /* Handle iOS bottom safe area roughly */
+        padding-bottom: max(12px, env(safe-area-inset-bottom));
+      }
+
+      .chat-input {
+        flex: 1;
+        background: var(--input-bg);
+        border: 1px solid transparent;
+        border-radius: 20px;
+        padding: 10px 16px;
+        color: var(--text-main);
+        font-size: 14px;
+        outline: none;
+        transition: border-color 0.2s;
+      }
+      
+      .chat-input:focus {
+        border-color: var(--primary);
+      }
+
+      .chat-send-btn {
+        width: 40px;
+        height: 40px;
+        background: var(--primary);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        cursor: pointer;
+        transition: transform 0.2s;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      }
+
+      .chat-send-btn:active {
+        transform: scale(0.92);
+      }
+
+      /* Typing Animation */
+      .typing-dots {
+        display: flex;
+        gap: 4px;
+        padding: 4px 0;
+      }
+      .typing-dot {
+        width: 6px;
+        height: 6px;
+        background: var(--text-sub);
+        border-radius: 50%;
+        animation: bounce 1.4s infinite ease-in-out both;
+        opacity: 0.6;
+      }
+      .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+      .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+      @keyframes bounce {
+        0%, 80%, 100% { transform: scale(0); }
+        40% { transform: scale(1); }
+      }
+      
+      /* Markdown-like simple styles inside chat */
+      .chat-bubble strong { font-weight: 600; }
+      .chat-bubble .highlight { color: var(--danger); font-weight: 600; }
+
+    </style>
+  </head>
+
+  <body>
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+      <div style="display: flex; gap: 10px; align-items: center">
+        <div style="width: 20px; height: 20px; background: var(--primary); border-radius: 4px;"></div>
+        <h1>small_count New Features Preview</h1>
+      </div>
+      <button class="btn-toggle" id="theme-toggle">
+        <svg class="icon icon-sm" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="5" />
+          <line x1="12" y1="1" x2="12" y2="3" />
+          <line x1="12" y1="21" x2="12" y2="23" />
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+          <line x1="1" y1="12" x2="3" y2="12" />
+          <line x1="21" y1="12" x2="23" y2="12" />
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+        </svg>
+        Toggle Theme
+      </button>
+    </div>
+
+    <div class="canvas">
+      
+      <!-- SCREEN 1: DATA IMPORT -->
+      <div style="position: relative">
+        <div class="screen-label">新增页面 01: 数据导入 (Import)</div>
+        <div class="device-mockup">
+          <div class="notch"></div>
+          <div class="screen-content">
+            <!-- Header -->
+            <div class="header-nav">
+              <svg class="icon" viewBox="0 0 24 24" style="cursor: pointer; color: var(--text-main);">
+                <path d="M19 12H5m7 7l-7-7 7-7"/>
+              </svg>
+              <div class="h2">数据管理</div>
+            </div>
+
+            <div style="padding: 16px 24px;">
+              <h1 class="h1" style="margin-bottom: 8px;">导入账单</h1>
+              <p class="text-sm" style="margin-bottom: 24px;">选择账单来源，系统将自动识别格式并去重。</p>
+            </div>
+
+            <div class="import-section">
+              
+              <!-- Alipay -->
+              <div class="import-card">
+                <div class="import-icon-box bg-ali">支</div>
+                <div style="flex:1; z-index: 2;">
+                  <div class="text-md font-bold">支付宝账单</div>
+                  <div class="text-sm" style="margin-top:4px; opacity: 0.8;">alipay_record.csv</div>
+                </div>
+                <div class="pill" style="z-index: 2;">推荐</div>
+                <!-- Deco Icon -->
+                <div class="card-deco">Ali</div>
+              </div>
+
+              <!-- WeChat -->
+              <div class="import-card">
+                <div class="import-icon-box bg-wx">微</div>
+                <div style="flex:1; z-index: 2;">
+                  <div class="text-md font-bold">微信支付账单</div>
+                  <div class="text-sm" style="margin-top:4px; opacity: 0.8;">wechat_bill.csv</div>
+                </div>
+                <svg class="icon icon-sm" viewBox="0 0 24 24" style="color:var(--text-sub)"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                <div class="card-deco">Wx</div>
+              </div>
+
+              <!-- CSV -->
+              <div class="import-card">
+                <div class="import-icon-box bg-csv">
+                  <svg class="icon" viewBox="0 0 24 24" style="stroke-width:2;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                </div>
+                <div style="flex:1; z-index: 2;">
+                  <div class="text-md font-bold">通用 CSV 文件</div>
+                  <div class="text-sm" style="margin-top:4px; opacity: 0.8;">自定义模板导入</div>
+                </div>
+                <svg class="icon icon-sm" viewBox="0 0 24 24" style="color:var(--text-sub)"><polyline points="9 18 15 12 9 6"></polyline></svg>
+              </div>
+
+            </div>
+
+            <!-- Divider -->
+            <div style="height: 1px; background: var(--border); margin: 24px;"></div>
+
+            <!-- Export Section -->
+            <div style="padding: 0 24px;">
+              <h2 class="text-md font-bold" style="margin-bottom: 16px;">数据导出</h2>
+              <div class="import-card" style="padding: 16px;">
+                 <div style="width: 36px; height: 36px; background: var(--icon-bg); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                    <svg class="icon icon-sm" viewBox="0 0 24 24" style="color: var(--text-main);"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                 </div>
+                 <div style="flex: 1;">
+                   <div class="text-md">导出 Excel / CSV</div>
+                 </div>
+                 <svg class="icon icon-sm" viewBox="0 0 24 24" style="color:var(--text-sub)"><polyline points="9 18 15 12 9 6"></polyline></svg>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- SCREEN 2: AI CHAT -->
+      <div style="position: relative">
+        <div class="screen-label">新增页面 02: AI 聊天 (Chat)</div>
+        <div class="device-mockup">
+          <div class="notch"></div>
+          <div class="screen-content" style="padding-bottom: 0; overflow: hidden;">
+            
+            <!-- Header -->
+            <div class="header-nav" style="border-bottom: 1px solid var(--border);">
+              <svg class="icon" viewBox="0 0 24 24" style="cursor: pointer; color: var(--text-main);">
+                <path d="M19 12H5m7 7l-7-7 7-7"/>
+              </svg>
+              <div style="flex: 1; text-align: center;">
+                <div class="h2" style="font-size: 16px;">small_count AI 助手</div>
+                <div class="text-sm" style="color: var(--primary);">在线</div>
+              </div>
+              <svg class="icon" viewBox="0 0 24 24" style="color: var(--text-main);">
+                <circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>
+              </svg>
+            </div>
+
+            <!-- Chat Area -->
+            <div class="chat-wrapper">
+              <div class="chat-container" id="chat-container">
+                <div class="text-sm" style="text-align: center; color: var(--text-sub); margin-bottom: 10px;">今天 14:32</div>
+                
+                <!-- AI Message -->
+                <div class="chat-bubble ai">
+                  你好！👋 我是你的智能理财助手。我可以帮你分析支出趋势、设定预算或查询账单。
+                </div>
+
+                <!-- User Message -->
+                <div class="chat-bubble user">
+                  帮我分析一下上个月在餐饮上的花费。
+                </div>
+
+                <!-- AI Message -->
+                <div class="chat-bubble ai">
+                  正在查询数据... 🔎 <br><br>根据记录，上个月（10月）<strong>🍜 餐饮美食</strong> 类目共支出 <span class="highlight">¥ 2,150.00</span>。
+                  <br><br>
+                  其中最大的一笔是 10月15日 的 ¥450.00（海底捞聚餐）。
+                </div>
+
+                <!-- User Message -->
+                <div class="chat-bubble user">
+                  这比9月份多了吗？
+                </div>
+
+                <!-- AI Message -->
+                <div class="chat-bubble ai">
+                  是的，相比9月上涨了 <span class="highlight">12%</span>。主要是因为周末的外食频率增加了。建议本月控制在 ¥1,800 以内哦。💡
+                </div>
+              </div>
+
+              <!-- Input Area -->
+              <div class="chat-input-area">
+                <div style="width: 24px; height: 24px; color: var(--text-sub); cursor: pointer;">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+                </div>
+                <input type="text" class="chat-input" id="chat-input-field" placeholder="问问 AI..." autocomplete="off">
+                <div class="chat-send-btn" id="btn-send-msg">
+                  <svg class="icon icon-sm" viewBox="0 0 24 24" style="stroke: white; margin-left: -2px;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <script>
+      // 1. Theme Toggle Logic
+      const htmlTag = document.documentElement;
+      document.getElementById("theme-toggle").addEventListener("click", () => {
+        const currentTheme = htmlTag.getAttribute("data-theme");
+        const newTheme = currentTheme === "light" ? "dark" : "light";
+        htmlTag.setAttribute("data-theme", newTheme);
+      });
+
+      // 2. Chat Simulation Logic
+      const chatInput = document.getElementById('chat-input-field');
+      const sendBtn = document.getElementById('btn-send-msg');
+      const chatContainer = document.getElementById('chat-container');
+
+      function sendUserMessage() {
+        const text = chatInput.value.trim();
+        if(!text) return;
+
+        // Add User Bubble
+        const userBubble = document.createElement('div');
+        userBubble.className = 'chat-bubble user';
+        userBubble.innerText = text;
+        chatContainer.appendChild(userBubble);
+        
+        // Clear input & scroll
+        chatInput.value = '';
+        scrollToBottom();
+
+        // Simulate AI Typing
+        showTypingIndicator();
+      }
+
+      function showTypingIndicator() {
+        const loadingBubble = document.createElement('div');
+        loadingBubble.id = 'typing-indicator';
+        loadingBubble.className = 'chat-bubble ai';
+        loadingBubble.innerHTML = `
+          <div class="typing-dots">
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+          </div>
+        `;
+        chatContainer.appendChild(loadingBubble);
+        scrollToBottom();
+
+        // Simulate Response delay
+        setTimeout(() => {
+          // Remove loading
+          const loader = document.getElementById('typing-indicator');
+          if(loader) loader.remove();
+          
+          // Add AI Response
+          const aiBubble = document.createElement('div');
+          aiBubble.className = 'chat-bubble ai';
+          aiBubble.innerHTML = `收到！我已经记下了 "<strong>${chatInput.value || '这条记录'}</strong>"。<br>还需要我帮你做什么吗？✨`;
+          chatContainer.appendChild(aiBubble);
+          scrollToBottom();
+        }, 1500);
+      }
+
+      function scrollToBottom() {
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+      }
+
+      // Event Listeners
+      if(sendBtn && chatInput) {
+        sendBtn.addEventListener('click', sendUserMessage);
+        chatInput.addEventListener('keypress', (e) => {
+          if(e.key === 'Enter') sendUserMessage();
+        });
+      }
+
+      console.log("small_count Extensions Loaded.");
+    </script>
+  </body>
+</html>

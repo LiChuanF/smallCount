@@ -253,53 +253,53 @@ const useDataStore = createAppStore<DataStore>((set, get) => ({
   },
 
   convertTransactionsForCalendar: async (transactions: Transaction[]) => {
-      // 计算月度统计数据 (使用 big.js 避免浮点数精度问题)
-      let totalIncome = new Big(0);
-      let totalExpense = new Big(0);
+    // 计算月度统计数据 (使用 big.js 避免浮点数精度问题)
+    let totalIncome = new Big(0);
+    let totalExpense = new Big(0);
 
-      transactions.forEach((transaction: any) => {
-        if (transaction.type === "expense") {
-          totalExpense = totalExpense.plus(new Big(transaction.amount));
-        } else if (transaction.type === "income") {
-          totalIncome = totalIncome.plus(new Big(transaction.amount));
-        }
-      });
+    transactions.forEach((transaction: any) => {
+      if (transaction.type === "expense") {
+        totalExpense = totalExpense.plus(new Big(transaction.amount));
+      } else if (transaction.type === "income") {
+        totalIncome = totalIncome.plus(new Big(transaction.amount));
+      }
+    });
 
-      const balance = totalIncome.minus(totalExpense);
-      set({
-        monthlyStats: {
-          balance: balance.toNumber(),
-          income: totalIncome.toNumber(),
-          expense: totalExpense.toNumber(),
-        },
-      });
+    const balance = totalIncome.minus(totalExpense);
+    set({
+      monthlyStats: {
+        balance: balance.toNumber(),
+        income: totalIncome.toNumber(),
+        expense: totalExpense.toNumber(),
+      },
+    });
 
-      // 处理数据用于日历组件
-      const calendarData: Record<string, { expense: number; income: number }> =
-        {};
+    // 处理数据用于日历组件
+    const calendarData: Record<string, { expense: number; income: number }> =
+      {};
 
-      transactions.forEach((transaction: any) => {
-        const dateStr = new Date(transaction.transactionDate)
-          .toISOString()
-          .split("T")[0];
+    transactions.forEach((transaction: any) => {
+      const dateStr = new Date(transaction.transactionDate)
+        .toISOString()
+        .split("T")[0];
 
-        if (!calendarData[dateStr]) {
-          calendarData[dateStr] = { expense: 0, income: 0 };
-        }
+      if (!calendarData[dateStr]) {
+        calendarData[dateStr] = { expense: 0, income: 0 };
+      }
 
-        if (transaction.type === "expense") {
-          const currentExpense = new Big(calendarData[dateStr].expense);
-          calendarData[dateStr].expense = currentExpense
-            .plus(new Big(transaction.amount))
-            .toNumber();
-        } else if (transaction.type === "income") {
-          const currentIncome = new Big(calendarData[dateStr].income);
-          calendarData[dateStr].income = currentIncome
-            .plus(new Big(transaction.amount))
-            .toNumber();
-        }
-      });
-      set({ transactionsDataForCalendar: calendarData });
+      if (transaction.type === "expense") {
+        const currentExpense = new Big(calendarData[dateStr].expense);
+        calendarData[dateStr].expense = currentExpense
+          .plus(new Big(transaction.amount))
+          .toNumber();
+      } else if (transaction.type === "income") {
+        const currentIncome = new Big(calendarData[dateStr].income);
+        calendarData[dateStr].income = currentIncome
+          .plus(new Big(transaction.amount))
+          .toNumber();
+      }
+    });
+    set({ transactionsDataForCalendar: calendarData });
   },
 
   groupTransactionsByDate: async (transactions: Transaction[]) => {
@@ -355,6 +355,32 @@ const useDataStore = createAppStore<DataStore>((set, get) => ({
         get().activeAccountId!,
         transaction.transactionDate.getFullYear(),
         transaction.transactionDate.getMonth() + 1
+      );
+      // 转换交易数据为日期格式
+      await get().convertTransactionsForCalendar(get().transactions);
+      // 分组交易数据
+      await get().groupTransactionsByDate(get().transactions);
+      // 更新相关账户的余额
+      await get().loadAccounts();
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : "添加交易失败",
+      });
+      throw error;
+    }
+  },
+
+  addBatchTransactions: async (transactions) => {
+    try {
+      const newTransactions =
+        await TransactionService.createTransactionsBatch(transactions);
+      const { transactions: oldTransactions } = get();
+      set({ transactions: [...oldTransactions, ...newTransactions] });
+
+      await get().loadTransactions(
+        get().activeAccountId!,
+        get().selectedDate.getFullYear(),
+        get().selectedDate.getMonth() + 1
       );
       // 转换交易数据为日期格式
       await get().convertTransactionsForCalendar(get().transactions);

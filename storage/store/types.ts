@@ -85,6 +85,9 @@ export interface DataActions {
   addTransaction: (
     transaction: Omit<Transaction, "id" | "createdAt" | "updatedAt">
   ) => Promise<void>;
+  addBatchTransactions: (
+    transactions: Omit<Transaction, "id" | "createdAt" | "updatedAt">[]
+  ) => Promise<void>;
   updateTransaction: (
     id: string,
     transaction: Partial<Transaction>
