@@ -1,6 +1,6 @@
+import { initializeAgents, simpleOpenAI } from "@/ai/aiAgents";
+import { AgentConfig } from "@/ai/SimpleOpenAI";
 import { useTheme } from "@/context/ThemeContext";
-import { initializeAgents, simpleOpenAI } from "@/utils/aiAgents";
-import { AgentConfig } from "@/utils/SimpleOpenAI";
 import { generateUUID } from "@/utils/uuid";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";

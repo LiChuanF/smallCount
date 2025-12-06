@@ -93,6 +93,10 @@ export const RootNavigator = () => {
                 name="ai"
                 options={{ presentation: "modal", title: "AI 助手", headerShown: false }}
               />
+              <Stack.Screen
+                name="aiDemo"
+                options={{ presentation: "modal", title: "AI 助手演示", headerShown: false }}
+              />
             </Stack>
           </DatabaseProvider>
         </ThemeProvider>

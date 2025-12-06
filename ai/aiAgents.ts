@@ -1,12 +1,12 @@
-import { AgentConfig, SimpleOpenAI } from './SimpleOpenAI';
+import { AgentConfig, SimpleOpenAI } from './lib';
 
 // 创建SimpleOpenAI实例
 export const simpleOpenAI = new SimpleOpenAI({
-  apiKey: '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', // API密钥留空，用户需要自己填写
-  baseURL: 'https://openrouter.ai/api/v1',
+  apiKey: '658d3fd1f1e1485983186992472f1b9e.Ri9PknpGt3qLMQiP', // API密钥留空，用户需要自己填写
+  baseURL: 'https://open.bigmodel.cn/api/paas/v4',
+  defaultModel: 'GLM-4.5-Flash', // 使用默认模型
   timeout: 30000,
   maxRetries: 3,
-  defaultModel: 'tngtech/deepseek-r1t2-chimera:free' // 使用默认模型
 });
 
 // 记账相关的测试智能体配置
@@ -37,15 +37,6 @@ export const accountingAgents: AgentConfig[] = [
     description: '提供基础投资知识和一般性投资建议',
     capabilities: ['投资知识', '风险评估', '资产配置', '理财建议'],
     avatar: '📈'
-  },
-  {
-    id: 'tax-helper',
-    name: '税务助手',
-    systemPrompt: '你是一个税务知识助手，可以提供基本的税务知识和报税指导。请注意，税务法规可能因地区而异，且可能发生变化，你的建议仅供参考。对于具体的税务问题，用户应该咨询专业的税务顾问。',
-    temperature: 0.2,
-    description: '提供基本税务知识和报税指导',
-    capabilities: ['税务知识', '报税指导', '税务优化', '税收政策'],
-    avatar: '🧾'
   }
 ];
 
@@ -62,10 +53,9 @@ export const initializeAgents = () => {
     
     // 设置默认智能体为支出分析师
     simpleOpenAI.setDefaultAgent('expense-analyzer');
-    const defaultId = simpleOpenAI.defaultAgId;
-    console.log('默认智能体设置为：', defaultId);
-    console.log('simpleOpenAI.defaultAgId 直接访问：', simpleOpenAI.defaultAgId);
-    console.log('simpleOpenAI.getDefaultAgentId() 调用：', simpleOpenAI.getDefaultAgentId());
+    const defaultAgent = simpleOpenAI.getAgent('expense-analyzer');
+    console.log('默认智能体设置为：', defaultAgent?.id);
+    console.log('默认智能体ID：', simpleOpenAI.getAgent('expense-analyzer')?.id);
     
     return accountingAgents;
   } catch (error) {

@@ -146,7 +146,8 @@ export default function BottomNav() {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 closeMenu();
                 // 假设你的 AI 页面路由是 /ai 或 /chat，请根据实际情况修改
-                router.navigate('/ai'); 
+                // router.navigate('/ai'); 
+                router.navigate('/aiDemo'); 
               }}
             >
               <View className="w-12 h-12 rounded-full bg-purple-500/10 items-center justify-center">
