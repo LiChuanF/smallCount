@@ -124,6 +124,17 @@ export class SimpleOpenAI {
   }
 
   /**
+   * 为智能体绑定工具
+   * 
+   * @param agentId 智能体ID
+   * @param toolIds 要绑定的工具ID列表
+   * @returns 更新后的智能体配置
+   */
+  public bindToolsToAgent(agentId: string, toolIds: string[]): AgentConfig {
+    return this.agentManager.bindToolsToAgent(agentId, toolIds);
+  }
+
+  /**
    * 注册工具
    * 
    * @param toolConfig 工具配置
@@ -227,6 +238,15 @@ export class SimpleOpenAI {
    * 流式对话
    * 
    * @param params 对话参数
+   * @param params.sessionId 会话ID（可选）
+   * @param params.agentId 智能体ID（可选）
+   * @param params.message 用户消息（可选）
+   * @param params.model 模型名称（可选）
+   * @param params.temperature 温度参数（可选）
+   * @param params.maxHistoryLength 最大历史消息长度（可选）
+   * @param params.maxTokens 最大令牌数（可选）
+   * @param params.tools 可用工具数组（可选）
+   * @param params.toolChoice 工具选择策略（可选）
    * @param callbacks 回调函数
    * @returns 取消函数
    */

@@ -118,6 +118,33 @@ export class AgentManager {
   }
 
   /**
+   * 为智能体绑定工具
+   * 
+   * @param agentId 智能体ID
+   * @param toolIds 要绑定的工具ID列表
+   * @returns 更新后的智能体配置
+   * @throws 如果智能体不存在则抛出错误
+   */
+  public bindToolsToAgent(agentId: string, toolIds: string[]): AgentConfig {
+    const agent = this.agents.get(agentId);
+    
+    if (!agent) {
+      throw new Error(`[AgentManager] Agent with ID ${agentId} not found.`);
+    }
+    
+    // 更新智能体的工具ID列表
+    const updatedAgent: AgentConfig = {
+      ...agent,
+      toolIds
+    };
+    
+    // 保存更新后的智能体配置
+    this.agents.set(agentId, updatedAgent);
+    
+    return updatedAgent;
+  }
+
+  /**
    * 智能体路由：根据用户输入智能选择最合适的智能体
    * 
    * @param userInput 用户输入文本

@@ -488,7 +488,7 @@ export class APIClient {
           // 处理普通文本内容
           if (delta.content) {
             fullText += delta.content;
-            onDelta(delta.content);
+            onDelta && onDelta(delta.content);
           }
         } catch (error) {
           console.warn('[APIClient] Parse Error:', error);
