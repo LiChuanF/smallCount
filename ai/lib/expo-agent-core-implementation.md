@@ -145,6 +145,19 @@ NetworkClient (网络通信)
 5. 智能体转接: Engine → Registry → StateManager (切换当前智能体)
 ```
 
+### 2.3 message说明
+
+```typescript
+export interface ChatMessage {
+  id: string; // 唯一ID
+  role: Role; // 角色 （system、user、assistant、tool）注意这个角色：角色的类型很重要，很多模型会根据角色来判断是否需要响应，比如system角色的消息一般不会被模型响应，如果是user角色的消息，模型大概率会正确响应，所以在发送请求时，将tool角色的消息伪装成user角色的消息，在处理转接 (Handoff)后，会新增一个system角色的消息，记录下转接的信息，告知AI前因后果，但是这时候会导致一些模型无法响应正确结果，所以在记录下这条消息后会再新增一个tool角色消息（tool后面会伪装成user）
+  content: string; // 消息内容
+  name?: string; // 可选的发送者名称
+  agentId?: string; // 可选的智能体ID，用于记录消息是由哪个智能体发送的
+  timestamp: number; // 消息发送时间戳
+}
+```
+
 ## 3. 核心组件实现
 
 ### 3.1 类型系统 (types.ts)

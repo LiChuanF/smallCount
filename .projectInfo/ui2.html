@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>small_count Extensions - Data Export Preview</title>
+    <title>small_count - AI Configuration Preview</title>
     <style>
       /* =========================================
          1. CORE DESIGN SYSTEM (保持原样)
@@ -230,7 +230,7 @@
       .chat-bubble .highlight { color: var(--danger); font-weight: 600; }
 
       /* =========================================
-         3. NEW STYLES: EXPORT PAGE (新增样式)
+         3. EXPORT & SETTINGS PAGE STYLES
          ========================================= */
       .form-section {
         padding: 16px;
@@ -273,6 +273,7 @@
         align-items: center;
         justify-content: center;
         margin-right: 12px;
+        flex-shrink: 0;
       }
 
       .settings-label {
@@ -308,6 +309,55 @@
       
       .btn-main:active {
         transform: scale(0.98);
+        box-shadow: none;
+      }
+
+      /* =========================================
+         4. NEW STYLES: AI CONFIG INPUTS (新增样式)
+         ========================================= */
+      
+      .input-row {
+        display: flex;
+        align-items: center;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border);
+      }
+      
+      .input-row:last-child { border-bottom: none; }
+
+      .input-row label {
+        display: block;
+        font-size: 12px;
+        color: var(--text-sub);
+        margin-bottom: 4px;
+      }
+      
+      .input-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+
+      .clean-input {
+        width: 100%;
+        border: none;
+        background: transparent;
+        font-size: 15px;
+        color: var(--text-main);
+        padding: 4px 0;
+        outline: none;
+      }
+      
+      .clean-input::placeholder {
+        color: var(--text-sub);
+        opacity: 0.5;
+      }
+
+      .btn-secondary {
+        background: var(--icon-bg);
+        color: var(--text-main);
+        border: 1px solid var(--border);
         box-shadow: none;
       }
 
@@ -420,35 +470,23 @@
         </div>
       </div>
 
-      <!-- =========================================
-           SCREEN 3: DATA EXPORT (NEW ADDITION) 
-           ========================================= -->
+      <!-- SCREEN 3: DATA EXPORT (Existing) -->
       <div style="position: relative">
-        <div class="screen-label">新增页面 03: 数据导出 (Export)</div>
+        <div class="screen-label">页面 03: 数据导出</div>
         <div class="device-mockup">
           <div class="notch"></div>
           <div class="screen-content">
-            
-            <!-- Header -->
             <div class="header-nav">
-              <svg class="icon" viewBox="0 0 24 24" style="cursor: pointer; color: var(--text-main);">
-                <path d="M19 12H5m7 7l-7-7 7-7"/>
-              </svg>
+              <svg class="icon" viewBox="0 0 24 24" style="cursor: pointer; color: var(--text-main);"><path d="M19 12H5m7 7l-7-7 7-7"/></svg>
               <div class="h2">导出选项</div>
             </div>
-
             <div style="padding: 16px 24px;">
               <h1 class="h1" style="margin-bottom: 8px;">导出数据</h1>
               <p class="text-sm" style="margin-bottom: 0;">筛选并导出你的记账记录到本地文件。</p>
             </div>
-
             <div class="form-section">
-              <!-- Filter Group -->
               <h3 class="text-sm font-bold" style="margin-bottom: 12px; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.5px;">筛选条件</h3>
-              
               <div class="settings-group">
-                
-                <!-- 1. Date Selection -->
                 <div class="settings-item">
                   <div style="display: flex; align-items: center;">
                     <div class="settings-icon">
@@ -456,13 +494,8 @@
                     </div>
                     <span class="settings-label">日期范围</span>
                   </div>
-                  <div class="settings-value">
-                    本月
-                    <svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                  </div>
+                  <div class="settings-value">本月<svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg></div>
                 </div>
-
-                <!-- 2. Account Selection -->
                 <div class="settings-item">
                   <div style="display: flex; align-items: center;">
                     <div class="settings-icon">
@@ -470,13 +503,8 @@
                     </div>
                     <span class="settings-label">账户来源</span>
                   </div>
-                  <div class="settings-value">
-                    全部账户
-                    <svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                  </div>
+                  <div class="settings-value">全部账户<svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg></div>
                 </div>
-
-                <!-- 3. Tag Selection -->
                 <div class="settings-item">
                   <div style="display: flex; align-items: center;">
                     <div class="settings-icon">
@@ -484,30 +512,10 @@
                     </div>
                     <span class="settings-label">消费标签</span>
                   </div>
-                  <div class="settings-value">
-                    已选 4 个
-                    <svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                  </div>
+                  <div class="settings-value">已选 4 个<svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg></div>
                 </div>
-
-                <!-- 4. Payment Method -->
-                <div class="settings-item">
-                  <div style="display: flex; align-items: center;">
-                    <div class="settings-icon">
-                      <svg class="icon icon-sm" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-                    </div>
-                    <span class="settings-label">支付方式</span>
-                  </div>
-                  <div class="settings-value">
-                    不限
-                    <svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                  </div>
-                </div>
-
               </div>
-              
-              <!-- File Format Option (Bonus visual) -->
-               <h3 class="text-sm font-bold" style="margin-bottom: 12px; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.5px;">文件格式</h3>
+              <h3 class="text-sm font-bold" style="margin-bottom: 12px; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.5px;">文件格式</h3>
                <div class="settings-group">
                  <div class="settings-item">
                     <div style="display: flex; align-items: center;">
@@ -521,10 +529,7 @@
                     </div>
                  </div>
                </div>
-
             </div>
-
-            <!-- Bottom Action -->
             <div style="margin-top: auto; padding: 16px 24px; background: var(--bg-card); border-top: 1px solid var(--border);">
               <div style="display:flex; justify-content:space-between; margin-bottom: 12px;">
                 <span class="text-sm">预计导出记录</span>
@@ -535,7 +540,106 @@
                 确认导出
               </button>
             </div>
+          </div>
+        </div>
+      </div>
 
+      <!-- =========================================
+           SCREEN 4: AI CONFIG (NEW ADDITION) 
+           ========================================= -->
+      <div style="position: relative">
+        <div class="screen-label">新增页面 04: AI 接口配置 (Config)</div>
+        <div class="device-mockup">
+          <div class="notch"></div>
+          <div class="screen-content">
+            
+            <!-- Header -->
+            <div class="header-nav">
+              <svg class="icon" viewBox="0 0 24 24" style="cursor: pointer; color: var(--text-main);">
+                <path d="M19 12H5m7 7l-7-7 7-7"/>
+              </svg>
+              <div class="h2">AI 设置</div>
+            </div>
+
+            <div style="padding: 16px 24px;">
+              <h1 class="h1" style="margin-bottom: 8px;">模型配置</h1>
+              <p class="text-sm" style="margin-bottom: 0;">配置 AI 服务的连接参数，确保助手正常工作。</p>
+            </div>
+
+            <div class="form-section">
+              
+              <!-- Service Provider -->
+              <h3 class="text-sm font-bold" style="margin-bottom: 12px; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.5px;">服务提供商</h3>
+              <div class="settings-group">
+                <div class="settings-item">
+                  <div style="display: flex; align-items: center;">
+                    <div class="settings-icon" style="background: #000; color: #fff;">
+                      <svg class="icon icon-sm" viewBox="0 0 24 24" style="fill: currentColor; stroke:none;"><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.5354.7751c-1.4261 0-2.6534-.6947-3.356-1.7801l-.7078-1.0711 1.8197-1.051-1.1066.6387a1.1397 1.1397 0 0 0-.2562.1965L3.8427 17.61a4.3984 4.3984 0 0 1-.3689-3.8778c.3259-.9745.9897-1.8028 1.8385-2.2741l.2415-.1242-.2366-.1388a1.154 1.154 0 0 0-.2902-.1217l-3.3283-.902a4.379 4.379 0 0 1 1.3533-4.1506 4.4379 4.4379 0 0 1 3.5517-.677l1.2483.3359-.767-.9395a1.1445 1.1445 0 0 0-.2757-.2306l-2.684-1.5593a4.379 4.379 0 0 1 3.8682-.3632c.9698.3276 1.793.994 2.2644 1.8385l.1388.2415.1169-.2415a1.1445 1.1445 0 0 0 .1218-.2854l.907-3.3234a4.3936 4.3936 0 0 1 4.1458 1.3484 4.4428 4.4428 0 0 1 .6818 3.5517l-.3359 1.2532.9347-.767a1.1445 1.1445 0 0 0 .2353-.2708l1.5544-2.6937a4.3839 4.3839 0 0 1 .3633 3.8682c-.3276.9698-.994 1.793-1.8385 2.2644l-.2415.1388.2415.1169a1.1445 1.1445 0 0 0 .2854.1218l3.3283.902a4.3936 4.3936 0 0 1-1.3533 4.1506 4.4379 4.4379 0 0 1-3.5517.677l-1.2483-.331.767.9347a1.13 1.13 0 0 0 .2707.2353l2.6938 1.5544a4.379 4.379 0 0 1-3.8683.3633c-.9697-.3276-1.7929-.994-2.2643-1.8385l-.1388-.2415-.1218.2415a1.154 1.154 0 0 0-.1169.2902l-.9118 3.3186z"/></svg>
+                    </div>
+                    <span class="settings-label">OpenAI / 兼容接口</span>
+                  </div>
+                  <div class="settings-value">
+                    <svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Connection Details -->
+              <h3 class="text-sm font-bold" style="margin-bottom: 12px; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.5px;">连接参数</h3>
+              
+              <div class="settings-group">
+                
+                <!-- 1. API Address -->
+                <div class="input-row">
+                  <div class="settings-icon">
+                    <svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                  </div>
+                  <div class="input-content">
+                    <label>接口地址 (Base URL)</label>
+                    <input type="text" class="clean-input" placeholder="https://api.openai.com/v1" value="https://api.openai.com/v1">
+                  </div>
+                </div>
+
+                <!-- 2. API Key -->
+                <div class="input-row">
+                  <div class="settings-icon">
+                    <svg class="icon icon-sm" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  </div>
+                  <div class="input-content">
+                    <label>API Key</label>
+                    <input type="password" class="clean-input" placeholder="sk-..." value="sk-s8d9f...d09f">
+                  </div>
+                </div>
+
+                <!-- 3. Model Name -->
+                <div class="input-row">
+                  <div class="settings-icon">
+                    <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                  </div>
+                  <div class="input-content">
+                    <label>模型名称 (Model)</label>
+                    <input type="text" class="clean-input" placeholder="gpt-4o" value="gpt-4o-mini">
+                  </div>
+                </div>
+
+              </div>
+              
+              <div style="text-align: right; margin-top: -16px; margin-bottom: 24px;">
+                 <span class="text-sm" style="color: var(--primary); cursor: pointer;">如何获取 Key?</span>
+              </div>
+
+              <!-- Buttons -->
+              <div style="display: flex; flex-direction: column; gap: 12px;">
+                <button class="btn-main btn-secondary">
+                  <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                  测试连接
+                </button>
+                <button class="btn-main">
+                  保存配置
+                </button>
+              </div>
+
+            </div>
           </div>
         </div>
       </div>

@@ -84,7 +84,7 @@ export interface DataActions {
   groupTransactionsByDate: (transactions: Transaction[]) => Promise<void>;
   addTransaction: (
     transaction: Omit<Transaction, "id" | "createdAt" | "updatedAt">
-  ) => Promise<void>;
+  ) => Promise<Transaction>;
   addBatchTransactions: (
     transactions: Omit<Transaction, "id" | "createdAt" | "updatedAt">[]
   ) => Promise<void>;
@@ -104,7 +104,7 @@ export interface DataActions {
   loadPaymentMethods: () => Promise<void>;
   addPaymentMethod: (
     paymentMethod: Omit<PaymentMethod, "id" | "createdAt" | "updatedAt">
-  ) => Promise<void>;
+  ) => Promise<PaymentMethod>;
   updatePaymentMethod: (
     id: string,
     paymentMethod: Partial<PaymentMethod>
@@ -228,3 +228,67 @@ export interface StatsActions {
 }
 
 export type StatsStore = StatsState & StatsActions;
+
+// 设置状态接口
+export interface SettingState {
+  // AI配置相关
+  apiUrl: string;
+  apiKey: string;
+  modelName: string;
+  serviceProvider: string;
+  
+  // 状态相关
+  isConfigured: boolean;
+  isLoading: boolean;
+  lastTestTime: number | null;
+  testResult: {
+    success: boolean;
+    message: string;
+    timestamp: number;
+  } | null;
+  
+  // 其他设置
+  autoSave: boolean;
+  enableNotifications: boolean;
+  theme: string;
+}
+
+// 设置操作接口
+export interface SettingActions {
+  // AI配置操作
+  updateApiUrl: (url: string) => void;
+  updateApiKey: (key: string) => void;
+  updateModelName: (model: string) => void;
+  updateServiceProvider: (provider: string) => void;
+  
+  // 初始化AI配置
+  initializeConfig: () => Promise<void>;
+  
+  // 保存AI配置
+  saveAiConfig: (config: {
+    apiUrl: string;
+    apiKey: string;
+    modelName: string;
+    serviceProvider?: string;
+  }) => Promise<boolean>;
+  
+  // 测试AI连接
+  testAiConnection: () => Promise<{
+    success: boolean;
+    message: string;
+  }>;
+  
+  // 重置AI配置
+  resetAiConfig: () => Promise<void>;
+  
+  // 其他设置操作
+  updateAutoSave: (autoSave: boolean) => void;
+  updateEnableNotifications: (enableNotifications: boolean) => void;
+  updateTheme: (theme: string) => void;
+  
+  // 重置所有设置
+  resetAllSettings: () => Promise<void>;
+}
+
+// 设置存储完整类型
+export type SettingStore = SettingState & SettingActions;

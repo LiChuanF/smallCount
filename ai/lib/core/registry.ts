@@ -29,8 +29,8 @@ export class Registry {
 
     // 1. 添加普通工具
     if (agent.tools) {
-      agent.tools.forEach(toolId => {
-        const tool = this.tools.get(toolId);
+      agent.tools.forEach(toolItem => {
+        const tool = this.tools.get(toolItem.id);
         if (tool) result.push(tool);
       });
     }

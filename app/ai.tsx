@@ -1,380 +1,408 @@
-import { initializeAgents, simpleOpenAI } from "@/ai/aiAgents";
-import { AgentConfig } from "@/ai/SimpleOpenAI";
+import { AgentsCreate } from "@/ai/AgentsCreate";
+import { AGENT_IDS } from "@/ai/constant";
+import { ExpoAgentCore } from "@/ai/lib";
+import AccountSelectModal from "@/components/ui/AddTransaction/AccountSelectModal";
 import { useTheme } from "@/context/ThemeContext";
+import useDataStore from "@/storage/store/useDataStore";
+import useSettingStore from "@/storage/store/useSettingStore";
 import { generateUUID } from "@/utils/uuid";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import { router } from "expo-router";
+import * as React from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  Alert,
-  Modal,
-  Platform,
-  StatusBar as RNStatusBar,
-  ScrollView,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    Platform,
+    StatusBar as RNStatusBar,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import {
-  Bubble,
-  ComposerProps,
-  DayProps,
-  GiftedChat,
-  IMessage,
-  InputToolbar,
+    Bubble,
+    ComposerProps,
+    GiftedChat,
+    IMessage,
+    InputToolbar,
 } from "react-native-gifted-chat";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+    useSafeAreaInsets
+} from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
-export default function AIScreen() {
-  const router = useRouter();
+// --- 1. Mock Data & Types ---
+interface Transaction {
+  id: string;
+  type: "income" | "expense";
+  amount: number;
+  category: string;
+  date: string;
+  description: string;
+}
+
+// --- 3. Main Component ---
+export default function AIDemo() {
   const { theme, isDarkMode } = useTheme();
   const insets = useSafeAreaInsets();
+
+  // 获取账户数据
+  const {
+    accounts,
+    activeAccount,
+    activeAccountId,
+    switchActiveAccount,
+    loadAccounts,
+  } = useDataStore();
+
+  // 获取AI配置
+  const { initializeConfig, apiKey, apiUrl: baseURL, modelName: defaultModel } = useSettingStore();
+
+  // State
   const [messages, setMessages] = useState<IMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [currentAgentId, setCurrentAgentId] = useState<string>('expense-analyzer');
-  const [showAgentSelector, setShowAgentSelector] = useState(false);
-  const [agents, setAgents] = useState<AgentConfig[]>([]);
-  const [sessionId, setSessionId] = useState<string>('');
-  const unsubscribeRef = useRef<(() => void) | null>(null);
+  const [core, setCore] = useState<ExpoAgentCore | null>(null);
+  const [sessionId, setSessionId] = useState<string>("");
+  const [showAccountModal, setShowAccountModal] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const [hasApiKey, setHasApiKey] = useState<boolean>(false);
+  const responseBufferRef = useRef<string>("");
+  const typingTimerRef = useRef<number | null>(null);
+
+  // Refs for cleanup
+  const cancelRef = useRef<(() => void) | null>(null);
+
+  // Layout constants
   const tabbarHeight = 0;
   const keyboardTopToolbarHeight = Platform.select({ ios: 44, default: 0 });
   const keyboardVerticalOffset =
     insets.bottom + tabbarHeight + keyboardTopToolbarHeight;
 
-  // 初始化智能体和会话
+  function createSmallCountAgents() {
+    // 从 useSettingStore 获取 API 配置
+    
+    // 初始化 AgentsCreate
+    const agentsCreator = new AgentsCreate({
+      apiKey,
+      baseURL,
+      defaultModel,
+      timeout: 10 * 60,
+    });
+
+    // 初始化所有工具和智能体
+    agentsCreator.initialize();
+
+    // 创建会话
+    const sessionId = agentsCreator.createSession();
+
+    // 获取 agentCore 实例
+    const agentCore = agentsCreator.getAgentCore();
+
+    return {
+      agentsCreator,
+      agentCore,
+      sessionId,
+    };
+  }
+
+  // --- Initialization ---
   useEffect(() => {
-    console.log('[AI Screen] useEffect started, initializing agents...');
-    try {
-      console.log('[AI Screen] Calling initializeAgents...');
-      const initializedAgents = initializeAgents();
-      console.log('[AI Screen] initializeAgents returned:', initializedAgents.length, 'agents');
-      setAgents(initializedAgents);
-      
-      // 创建新会话
-      console.log('[AI Screen] Creating session with agent:', currentAgentId);
-      const newSessionId = simpleOpenAI.createSession(currentAgentId);
-      console.log('[AI Screen] Session created with ID:', newSessionId);
-      setSessionId(newSessionId);
-      
-      // 添加欢迎消息
-      const currentAgent = initializedAgents.find(a => a.id === currentAgentId);
-      console.log('[AI Screen] Current agent:', currentAgent);
-      setMessages([
-        {
-          _id: 1,
-          text: `你好！👋 我是${currentAgent?.name || 'AI助手'}，${currentAgent?.description || '有什么可以帮助你的吗？'}`,
-          createdAt: new Date(),
-          user: {
-            _id: 2,
-            name: currentAgent?.name || 'AI Assistant',
-            avatar: currentAgent?.avatar || undefined,
-          },
-        }, 
-      ]);
-    } catch (error) {
-      console.error('初始化AI助手失败:', error);
-      Alert.alert('错误', `初始化AI助手失败: ${error instanceof Error ? error.message : '未知错误'}`);
-    }
+    // 初始化AI配置
+    initializeConfig();
+    
+    // 检查API Key是否存在
+    checkApiKeyExists();
+    
+    // 初始化 Core
+    const { agentsCreator, agentCore, sessionId } = createSmallCountAgents();
+
+    setCore(agentsCreator.getAgentCore());
+
+    // 创建会话
+    const newSessionId = agentCore.createSession(
+      AGENT_IDS.SMALLCOUNT_ASSISTANT
+    );
+    setSessionId(newSessionId);
+
+    // 初始化账户数据
+    loadAccounts();
+
+    // Initial greeting
+    setMessages([
+      {
+        _id: generateUUID(),
+        text: "你好！我是SMALLCOUNT助手。我可以帮你记账或分析收支。请告诉我你的需求。",
+        createdAt: new Date(),
+        user: { _id: 2, name: "SMALLCOUNT助手" },
+      },
+      {
+        _id: generateUUID(),
+        text: `🔮 欢迎使用SMALLCOUNT AI ！当前已选择账户：${activeAccount?.name || "无"}`,
+        createdAt: new Date(),
+        user: { _id: 3, name: "系统通知" },
+        system: true,
+      },
+    ]);
+
+    return () => {
+      if (cancelRef.current) cancelRef.current();
+    };
   }, []);
 
-  // 切换智能体
-  const switchAgent = useCallback((agentId: string) => {
-    if (agentId === currentAgentId) {
-      setShowAgentSelector(false);
-      return;
-    }
-    
-    try {
-      // 切换会话的智能体
-      if (sessionId) {
-        simpleOpenAI.switchSessionAgent(sessionId, agentId);
-      }
-      
-      const newAgent = agents.find(a => a.id === agentId);
-      setCurrentAgentId(agentId);
-      setShowAgentSelector(false);
-      
-      // 添加切换智能体的消息
-      setMessages(previousMessages => 
-        GiftedChat.append(previousMessages, [
-          {
-            _id: Math.random().toString(),
-            text: `已切换到${newAgent?.name || 'AI助手'}`,
-            createdAt: new Date(),
-            system: true,
-            user: {
-              _id: 0,
-            },
-          },
-          {
-            _id: Math.random().toString(),
-            text: `你好！👋 我是${newAgent?.name || 'AI助手'}，${newAgent?.description || '有什么可以帮助你的吗？'}`,
-            createdAt: new Date(),
-            user: {
-              _id: 2,
-              name: newAgent?.name || 'AI Assistant',
-              avatar: newAgent?.avatar || undefined,
-            },
-          }
-        ])
-      );
-    } catch (error) {
-      console.error('切换智能体失败:', error);
-      Alert.alert('错误', '切换智能体失败');
-    }
-  }, [currentAgentId, sessionId, agents]);
+  // 监听 apiKey 变化
+  useEffect(() => {
+    checkApiKeyExists();
+  }, [apiKey]);
 
-  // 发送消息并获取AI回复
-  const onSend = useCallback((messages: IMessage[] = []) => {
-    setMessages(previousMessages =>
-      GiftedChat.append(previousMessages, messages)
+  // 监听 hasApiKey 变化，更新提示消息
+  useEffect(() => {
+    // 检查是否已存在API Key提示消息
+    const hasApiKeyWarning = messages.some(
+      msg => msg.system && msg.text?.includes('您尚未配置 AI API Key')
+    );
+    
+    // 如果没有API Key且没有警告消息，添加警告
+    if (!hasApiKey && !hasApiKeyWarning) {
+      const warningMessage = {
+        _id: generateUUID(),
+        text: "⚠️ 您尚未配置 AI API Key，请点击右上角的「需要配置」按钮进行设置。配置完成后才能正常使用 AI 功能。",
+        createdAt: new Date(),
+        user: { _id: 3, name: "系统通知" },
+        system: true,
+      };
+      setMessages(prev => [...prev, warningMessage]);
+    }
+    // 如果有API Key且有警告消息，移除警告
+    else if (hasApiKey && hasApiKeyWarning) {
+      setMessages(prev => prev.filter(
+        msg => !(msg.system && msg.text?.includes('您尚未配置 AI API Key'))
+      ));
+    }
+  }, [hasApiKey]);
+
+  // 检查API Key是否存在
+  const checkApiKeyExists = () => {
+    const hasKey = !!(apiKey && apiKey.trim() !== '');
+    setHasApiKey(hasKey);
+    return hasKey;
+  };
+
+  // 处理账户选择
+  const handleAccountSelect = async (account: any) => {
+    try {
+      await switchActiveAccount(account.id);
+      setShowAccountModal(false);
+    } catch (error) {
+      console.error("切换账户失败:", error);
+    }
+  };
+
+  // ... 前面的 import 和 state 保持不变
+
+  // --- 辅助函数：清洗文本 ---
+  const cleanText = (text: string) => {
+    return text
+      .replace(/<think>[\s\S]*?<\/think>/gi, "") // 移除深度思考过程
+      .replace(/<think>[\s\S]*/gi, "") // 移除未闭合标签
+      .replace(/```json[\s\S]*?```/gi, "") // 移除 JSON 代码块
+      .replace(/```[\s\S]*?```/gi, "") // 移除普通代码块（如果也是工具调用的话）
+      .trim();
+  };
+
+  const startTypewriterEffect = (fullText: string) => {
+    const aiMessageId = generateUUID();
+    const createdAt = new Date();
+
+    // 1. 先添加一个空的 AI 消息气泡
+    setMessages((prev) =>
+      GiftedChat.append(prev, [
+        {
+          _id: aiMessageId,
+          text: " ", // 给一个空格占位，防止气泡塌陷
+          createdAt: createdAt,
+          user: { _id: 2, name: "SMALLCOUNT助手" },
+        },
+      ])
     );
 
-    // 获取用户发送的消息
-    const userMessage = messages[0];
-    if (!userMessage || !userMessage.text) return;
-    
-    setIsLoading(true);
-    
-    // 取消之前的请求
-    if (unsubscribeRef.current) {
-      unsubscribeRef.current();
-      unsubscribeRef.current = null;
-    }
-    
-    // 为AI回复生成一个唯一的消息ID
-    const aiMessageId = generateUUID();
-    
-    try {
-      // 使用流式对话
-      unsubscribeRef.current = simpleOpenAI.chatStream({
-        sessionId,
-        agentId: currentAgentId,
-        message: userMessage.text,
-        maxHistoryLength: 20,
-      }, {
-        onStart: () => {
-          // 添加AI的空消息
-          setMessages(previousMessages =>
-            GiftedChat.append(previousMessages, [
-              {
-                _id: aiMessageId,
-                text: '',
-                createdAt: new Date(),
-                user: {
-                  _id: 2,
-                  name: agents.find(a => a.id === currentAgentId)?.name || 'AI Assistant',
-                  avatar: agents.find(a => a.id === currentAgentId)?.avatar || undefined,
-                },
-              },
-            ])
-          );
+    let currentIndex = 0;
+    const length = fullText.length;
+    // 调整打字速度：数字越小越快。30ms 比较接近真实流式感
+    const speed = 30;
+    // 每次增加的字符数：增加到 2 或 3 可以让长文本显示得更流畅
+    const chunkSize = 3;
+
+    const typeChar = () => {
+      if (currentIndex < length) {
+        // 计算下一帧要显示的完整文本
+        currentIndex += chunkSize;
+        const currentText = fullText.slice(0, currentIndex);
+
+        setMessages((prev) => {
+          const next = [...prev];
+          // 找到我们刚才创建的那条消息
+          const targetIndex = next.findIndex((m) => m._id === aiMessageId);
+          if (targetIndex !== -1) {
+            next[targetIndex] = {
+              ...next[targetIndex],
+              text: currentText, // 更新文本
+            };
+          }
+          return next;
+        });
+
+        // 继续下一帧
+        typingTimerRef.current = setTimeout(typeChar, speed);
+      } else {
+        // 打字结束
+        typingTimerRef.current = null;
+      }
+    };
+
+    // 启动打字
+    typeChar();
+  };
+  // --- Chat Handler ---
+  const onSend = useCallback(
+    (newMessages: IMessage[] = []) => {
+      // 检查是否有 API Key
+      if (!hasApiKey) {
+        Toast.show({
+          type: 'error',
+          text1: '无法发送消息',
+          text2: '请先配置 AI API Key，点击右上角的「需要配置」按钮进行设置',
+        });
+        return;
+      }
+      
+      if (!core || !sessionId) return;
+      const userMsg = newMessages[0];
+      if (!userMsg?.text) return;
+
+      // 重置默认代理为SMALLCOUNT助手
+      core.setCurrentAgent(sessionId, AGENT_IDS.SMALLCOUNT_ASSISTANT);
+
+      // 1. UI: 显示用户消息
+      setMessages((prev) => GiftedChat.append(prev, newMessages));
+      // 2. UI: 显示 "对方正在输入" 小点点
+      setIsTyping(true);
+      // 3. 重置缓冲区
+      responseBufferRef.current = "";
+
+      // 如果上一次的打字动画还没播完，强制停止，直接显示完整结果（可选优化）
+      if (typingTimerRef.current) {
+        clearTimeout(typingTimerRef.current);
+        typingTimerRef.current = null;
+      }
+
+      const cancel = core.chat(sessionId, userMsg.text, {
+        onStart: () => {}, // 保持静默
+
+        onTextDelta: (text, agentId) => {
+          // 只在后台积累，完全不更新 UI
+          responseBufferRef.current += text;
         },
-        onDelta: (delta) => {
-          // 更新特定ID的消息
-          setMessages(previousMessages => {
-            const updatedMessages = [...previousMessages];
-            const aiMessageIndex = updatedMessages.findIndex(msg => msg._id === aiMessageId);
-            if (aiMessageIndex !== -1) {
-              updatedMessages[aiMessageIndex] = {
-                ...updatedMessages[aiMessageIndex],
-                text: updatedMessages[aiMessageIndex].text + delta,
-              };
-            }
-            return updatedMessages;
-          });
+
+        onToolCall: (name, args) => {
+          responseBufferRef.current = ""; // 丢弃废话
+          addSystemStatusMessage(`🛠️ 正在执行：${name}...`);
         },
-        onCompletion: (fullText, updatedSessionId) => {
-          setIsLoading(false);
-          if (updatedSessionId) {
-            setSessionId(updatedSessionId);
+
+        onAgentChange: (from, to) => {
+          responseBufferRef.current = ""; // 丢弃废话
+          const agentNameMap: Record<string, string> = {
+            [AGENT_IDS.SMALLCOUNT_ASSISTANT]: "总助手",
+            [AGENT_IDS.DATA_OPERATOR]: "数据操作",
+            [AGENT_IDS.INCOME_EXPENSE_ANALYST]: "分析师",
+            [AGENT_IDS.SUMMARIZER]: "总结助手",
+          };
+          const name = agentNameMap[to] || to;
+          addSystemStatusMessage(`🔄 正在转接给：${name}...`);
+        },
+
+        onToolResult: () => {},
+
+        onComplete: () => {
+          // 网络请求完全结束
+          setIsTyping(false);
+          cancelRef.current = null;
+
+          // 清洗文本
+          const finalContent = cleanText(responseBufferRef.current);
+          console.log("已完成内容:", finalContent);
+
+          if (finalContent) {
+            // 关键：调用打字机效果函数
+            startTypewriterEffect(finalContent);
+          } else {
+            // 兜底：如果没有内容
+            startTypewriterEffect("✅ 操作已完成");
           }
         },
-        onError: (error) => {
-          setIsLoading(false);
-          console.error('AI对话错误:', error);
-          
-          // 更新特定ID的消息为错误提示
-          setMessages(previousMessages => {
-            const updatedMessages = [...previousMessages];
-            const aiMessageIndex = updatedMessages.findIndex(msg => msg._id === aiMessageId);
-            if (aiMessageIndex !== -1) {
-              updatedMessages[aiMessageIndex] = {
-                ...updatedMessages[aiMessageIndex],
-                text: '抱歉，处理您的请求时出现了错误。请检查API密钥配置或稍后再试。',
-              };
-            }
-            return updatedMessages;
-          });
-          
-          Alert.alert('错误', '处理您的请求时出现了错误，请检查API密钥配置');
-        }
-      });
-    } catch (error) {
-      setIsLoading(false);
-      console.error('发送消息失败:', error);
-      Alert.alert('错误', '发送消息失败，请检查API密钥配置');
-    }
-  }, [sessionId, currentAgentId, agents]);
 
-  // 组件卸载时取消请求
+        onError: (err) => {
+          setIsTyping(false);
+          addSystemStatusMessage(`❌ 出错: ${err.message}`);
+        },
+      });
+
+      cancelRef.current = cancel;
+    },
+    [core, sessionId, hasApiKey]
+  );
+
+  // 组件卸载时清理定时器
   useEffect(() => {
     return () => {
-      if (unsubscribeRef.current) {
-        unsubscribeRef.current();
+      if (typingTimerRef.current) {
+        clearTimeout(typingTimerRef.current);
+      }
+      if (cancelRef.current) {
+        cancelRef.current();
       }
     };
   }, []);
 
-  // Custom Header
-  const renderHeader = () => (
-    <View
-      className="flex-row items-center justify-between px-4 py-2 border-b border-border bg-card"
-      style={{
-        borderBottomColor: theme.colors.border,
-        backgroundColor: theme.colors.card,
-        paddingTop: insets.top > 0 ? insets.top : 10, // Handle notch if not in SafeAreaView or if we want custom padding
-      }}
-    >
-      <TouchableOpacity onPress={() => router.back()}>
-        <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
-      </TouchableOpacity>
+  // 辅助函数：添加系统消息 (保持不变)
+  const addSystemStatusMessage = (text: string) => {
+    const systemMessage: IMessage = {
+      _id: generateUUID(),
+      text: text,
+      createdAt: new Date(),
+      user: { _id: 0, name: "系统" },
+      system: true,
+    };
+    setMessages((prev) => GiftedChat.append(prev, [systemMessage]));
+  };
 
-      <TouchableOpacity 
-        className="items-center flex-1"
-        onPress={() => setShowAgentSelector(true)}
-      >
-        <Text
-          className="text-base font-bold"
-          style={{ color: theme.colors.text }}
-        >
-          {agents.find(a => a.id === currentAgentId)?.name || 'AI助手'}
-        </Text>
-        <Text className="text-xs" style={{ color: theme.colors.primary }}>
-          在线
-        </Text>
-      </TouchableOpacity>
+  const handleStop = () => {
+    if (cancelRef.current) {
+      cancelRef.current();
+      cancelRef.current = null;
+      setIsTyping(false);
+      addSystemStatusMessage("⏹️ 操作已停止");
+    }
+  };
 
-      <TouchableOpacity onPress={() => setShowAgentSelector(true)}>
-        <Ionicons
-          name="ellipsis-horizontal"
-          size={24}
-          color={theme.colors.text}
-        />
-      </TouchableOpacity>
-    </View>
-  );
+  // ... 其余渲染代码保持不变
+  // Helper to update a specific message - now updates only the AI message
+  const updateAiMessage = (msgId: string, content: string) => {
+    setMessages((prev) => {
+      const next = [...prev];
+      const index = next.findIndex((m) => m._id === msgId);
 
-  // 智能体选择器
-  const renderAgentSelector = () => (
-    <Modal
-      visible={showAgentSelector}
-      transparent={true}
-      animationType="slide"
-      onRequestClose={() => setShowAgentSelector(false)}
-    >
-      <View 
-        style={{ 
-          flex: 1, 
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          justifyContent: 'flex-end'
-        }}
-      >
-        <View 
-          style={{
-            backgroundColor: theme.colors.card,
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            padding: 20,
-            maxHeight: '70%'
-          }}
-        >
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-            <Text style={{ fontSize: 18, fontWeight: 'bold', color: theme.colors.text }}>
-              选择智能体
-            </Text>
-            <TouchableOpacity onPress={() => setShowAgentSelector(false)}>
-              <Ionicons name="close" size={24} color={theme.colors.text} />
-            </TouchableOpacity>
-          </View>
-          
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {agents.map(agent => (
-              <TouchableOpacity
-                key={agent.id}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  padding: 15,
-                  borderRadius: 10,
-                  backgroundColor: currentAgentId === agent.id ? theme.colors.primary + '20' : 'transparent',
-                  marginBottom: 10,
-                }}
-                onPress={() => switchAgent(agent.id)}
-              >
-                <View style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 20,
-                  backgroundColor: theme.colors.primary + '20',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  marginRight: 15,
-                }}>
-                  <Text style={{ fontSize: 20 }}>{agent.avatar}</Text>
-                </View>
-                
-                <View style={{ flex: 1 }}>
-                  <Text style={{ 
-                    fontSize: 16, 
-                    fontWeight: 'bold', 
-                    color: theme.colors.text,
-                    marginBottom: 5
-                  }}>
-                    {agent.name}
-                  </Text>
-                  <Text style={{ 
-                    fontSize: 14, 
-                    color: theme.colors.textSecondary,
-                    lineHeight: 20
-                  }}>
-                    {agent.description}
-                  </Text>
-                  
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 5 }}>
-                    {agent.capabilities?.slice(0, 3).map((capability, index) => (
-                      <View key={index} style={{
-                        backgroundColor: theme.colors.primary + '20',
-                        paddingHorizontal: 8,
-                        paddingVertical: 2,
-                        borderRadius: 10,
-                        marginRight: 5,
-                        marginBottom: 3,
-                      }}>
-                        <Text style={{ 
-                          fontSize: 12, 
-                          color: theme.colors.primary 
-                        }}>
-                          {capability}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-                
-                {currentAgentId === agent.id && (
-                  <Ionicons name="checkmark" size={20} color={theme.colors.primary} />
-                )}
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-      </View>
-    </Modal>
-  );
+      if (index !== -1) {
+        // 只更新AI消息的内容
+        next[index] = {
+          ...next[index],
+          text: content.trim(),
+        };
+      }
+      return next;
+    });
+  };
 
-  // Custom Bubble
+  // --- 5. UI Components (Similar to original) ---
+
   const renderBubble = useCallback(
     (props: any) => {
       return (
@@ -383,258 +411,259 @@ export default function AIScreen() {
           wrapperStyle={{
             left: {
               backgroundColor: theme.colors.card,
-              borderWidth: 0, // No border in design
+              borderWidth: 0,
               padding: 4,
               borderRadius: 12,
-              borderTopLeftRadius: 4,
-              marginBottom: 4,
             },
             right: {
               backgroundColor: theme.colors.primary,
               borderRadius: 12,
-              borderTopRightRadius: 4,
               padding: 4,
-              marginBottom: 4,
             },
           }}
           textStyle={{
-            left: {
-              color: theme.colors.text,
-              fontSize: 15,
-              lineHeight: 22,
-            },
-            right: {
-              color: "#FFFFFF",
-              fontSize: 15,
-              lineHeight: 22,
-            },
-          }}
-          renderMessageText={(props) => {
-            // Custom rendering for the specific message with rich text simulation
-            // Since we can't easily inject HTML, we check if it's the specific message
-            if (props.currentMessage.text.includes("¥ 2,150.00")) {
-              return (
-                <View style={{ padding: 8 }}>
-                  <Text
-                    style={{
-                      color: theme.colors.text,
-                      fontSize: 15,
-                      lineHeight: 22,
-                    }}
-                  >
-                    正在查询数据... 🔎 {"\n\n"}
-                    根据记录，上个月（10月）
-                    <Text style={{ fontWeight: "bold" }}>🍜 餐饮美食</Text>
-                    类目共支出
-                    <Text
-                      style={{ fontWeight: "bold", color: theme.colors.text }}
-                    >
-                      {" "}
-                      ¥ 2,150.00
-                    </Text>
-                    。
-                  </Text>
-                </View>
-              );
-            }
-            // Default rendering for others
-            return (
-              <View style={{ padding: 8 }}>
-                <Text
-                  style={{
-                    color:
-                      props.position === "left" ? theme.colors.text : "#FFFFFF",
-                    fontSize: 15,
-                    lineHeight: 22,
-                  }}
-                >
-                  {props.currentMessage.text}
-                </Text>
-              </View>
-            );
+            left: { color: theme.colors.text, fontSize: 15, lineHeight: 22 },
+            right: { color: "#FFFFFF", fontSize: 15, lineHeight: 22 },
           }}
         />
       );
     },
-    [theme.colors.card, theme.colors.primary, theme.colors.text]
+    [theme]
   );
 
-  const [text, setText] = useState("");
-  const handleTextChange = useCallback((text: string, composerProps: any) => {
-    setText(text);
-  }, []);
-
-  const handleSubmit = useCallback((composerProps: any) => {
-    if (composerProps.text && composerProps.text.trim()) {
-      composerProps.onSend({ text: composerProps.text.trim() }, true);
-    }
-  }, []);
-
-  // Custom Composer to ensure stable reference and avoid re-render focus loss
-  const renderComposer = useCallback(
-    (composerProps: ComposerProps) => (
-      <View className="flex-row items-center flex-1 gap-3">
-        <TouchableOpacity disabled={isLoading}>
-          <Ionicons name="add" size={24} color={isLoading ? "#9CA3AF" : theme.colors.textSecondary} />
-        </TouchableOpacity>
-        <View
-          className="flex-1 rounded-full px-4 py-2"
-          style={{
-            backgroundColor: isDarkMode ? "#2c2c2e" : "#f3f4f6", // Light gray for input bg
-            height: 40,
-            justifyContent: "center",
-            opacity: isLoading ? 0.6 : 1,
-          }}
-        >
-          {isLoading ? (
-            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center" }}>
-              <Text style={{ color: theme.colors.textSecondary, marginRight: 8 }}>
-                AI正在思考...
-              </Text>
-              <Ionicons name="ellipsis-horizontal" size={16} color={theme.colors.textSecondary} />
-            </View>
-          ) : (
-            <TextInput
-              style={{
-                color: theme.colors.text,
-                fontSize: 15,
-                padding: 0, // Remove default padding
-                height: "100%",
-              }}
-              placeholder="问问 AI..."
-              placeholderTextColor={theme.colors.textSecondary}
-              onChangeText={(text) => composerProps?.textInputProps?.onChangeText?.(text)}
-              defaultValue={composerProps.text}
-              returnKeyType="send"
-              editable={!isLoading}
-            />
-          )}
-        </View>
-      </View>
-    ),
-    [
-      theme.colors.text,
-      theme.colors.textSecondary,
-      "#9CA3AF", // 代替 theme.colors.textDisabled
-      theme.colors.card,
-      isDarkMode,
-      isLoading,
-      handleTextChange,
-      handleSubmit,
-    ]
-  );
-
-  // Custom Send Button
-  const renderSend = useCallback(
-    (sendProps: any) => (
-      <TouchableOpacity
-        onPress={() => {
-          if (sendProps.text && sendProps.text.trim() && !isLoading) {
-            sendProps.onSend({ text: sendProps.text.trim() }, true);
-          }
-        }}
-        disabled={isLoading || !sendProps.text || !sendProps.text.trim()}
-        className="ml-3 w-10 h-10 rounded-full items-center justify-center"
-        style={{ 
-          backgroundColor: (isLoading || !sendProps.text || !sendProps.text.trim()) 
-            ? "#D1D5DB" // 代替 theme.colors.disabled
-            : theme.colors.primary 
+  // Input components ...
+  const renderComposer = (props: ComposerProps) => (
+    <View className="flex-row items-center flex-1 gap-3">
+      <View
+        className="flex-1 rounded-full px-4 py-2"
+        style={{
+          backgroundColor: isDarkMode ? "#2c2c2e" : "#f3f4f6",
+          height: 40,
+          justifyContent: "center",
         }}
       >
-        {isLoading ? (
-          <Ionicons
-            name="hourglass-outline"
-            size={20}
-            color="#FFFFFF"
-            style={{ marginLeft: -2, marginTop: 2 }}
-          />
-        ) : (
-          <Ionicons
-            name="paper-plane-outline"
-            size={20}
-            color="#FFFFFF"
-            style={{ marginLeft: -2, marginTop: 2 }}
-          />
-        )}
-      </TouchableOpacity>
-    ),
-    [theme.colors.primary, "#D1D5DB", isLoading] // 代替 theme.colors.disabled
-  );
-
-  // Custom Input Toolbar
-  const renderInputToolbar = useCallback(
-    (props: any) => {
-      return (
-        <InputToolbar
-          {...props}
-          containerStyle={{
-            backgroundColor: theme.colors.card,
-            borderTopWidth: 0,
-            padding: 8,
-            paddingBottom: insets.bottom + 8, // Add bottom padding for home indicator
+        <TextInput
+          style={{
+            color: theme.colors.text,
+            fontSize: 15,
+            padding: 0, // Remove default padding
+            height: "100%",
           }}
-          primaryStyle={{ alignItems: "center" }}
-          renderComposer={renderComposer}
-          renderSend={renderSend}
+          placeholder="输入：记一笔午餐30元 / 分析本月支出"
+          placeholderTextColor={theme.colors.textSecondary}
+          onChangeText={(text) => props?.textInputProps?.onChangeText?.(text)}
+          value={props.text}
+          returnKeyType="send"
+          editable={!isLoading}
         />
-      );
-    },
-    [theme.colors.card, insets.bottom, renderComposer, renderSend]
+      </View>
+    </View>
   );
 
-  // Custom Day (Date)
-  const renderDay = useCallback(
-    (props: DayProps) => {
-      const { createdAt } = props;
-      
-      // Convert createdAt to Date object if it's a number
-      const date = typeof createdAt === 'number' ? new Date(createdAt) : createdAt;
-      
-      // Format the date and time
-      const today = new Date();
-      const isToday = date.toDateString() === today.toDateString();
-      
-      let dateText = '';
-      if (isToday) {
-        dateText = `今天 ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
-      } else {
-        dateText = `${date.getMonth() + 1}月${date.getDate()}日 ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+  const renderSend = (props: any) => (
+    <TouchableOpacity
+      onPress={() =>
+        props.text?.trim() && props.onSend({ text: props.text.trim() }, true)
       }
-      
-      return (
-        <View style={{ alignItems: "center", marginVertical: 10 }}>
-          <Text style={{ color: theme.colors.textSecondary, fontSize: 12 }}>
-            {dateText}
+      disabled={isLoading || !props.text?.trim()}
+      className="ml-3 w-10 h-10 rounded-full items-center justify-center"
+      style={{ backgroundColor: isLoading ? "#ef4444" : theme.colors.primary }}
+    >
+      {isLoading ? (
+        <TouchableOpacity onPress={handleStop}>
+          <Ionicons name="stop" size={20} color="#FFFFFF" />
+        </TouchableOpacity>
+      ) : (
+        <Ionicons
+          name="paper-plane-outline"
+          size={20}
+          color="#FFFFFF"
+          style={{ marginLeft: -2, marginTop: 2 }}
+        />
+      )}
+    </TouchableOpacity>
+  );
+
+  const renderSystemMessage = (props: any) => {
+    const { currentMessage } = props;
+
+    if (!currentMessage?.system) return null;
+
+    // 根据消息内容判断消息类型
+    const isStatusMessage =
+      currentMessage.text?.includes("正在调用") ||
+      currentMessage.text?.includes("转接任务") ||
+      currentMessage.text?.includes("系统");
+
+    return (
+      <View className="items-center my-2">
+        <View
+          className={`px-4 py-2 rounded-full flex-row items-center ${isStatusMessage ? "max-w-xs" : "max-w-md"}`}
+          style={{
+            backgroundColor: isDarkMode
+              ? "rgba(59, 130, 246, 0.2)"
+              : "rgba(59, 130, 246, 0.1)",
+            borderWidth: 1,
+            borderColor: isDarkMode
+              ? "rgba(59, 130, 246, 0.3)"
+              : "rgba(59, 130, 246, 0.2)",
+          }}
+        >
+          {isStatusMessage && (
+            <Ionicons
+              name="information-circle-outline"
+              size={14}
+              color={theme.colors.primary}
+              style={{ marginRight: 6 }}
+            />
+          )}
+          <Text
+            className={`text-xs font-medium text-center ${isStatusMessage ? "italic" : ""}`}
+            style={{ color: theme.colors.primary }}
+          >
+            {currentMessage.text}
           </Text>
         </View>
-      );
-    },
-    [theme.colors.textSecondary]
+      </View>
+    );
+  };
+
+  const renderInputToolbar = (props: any) => (
+    <InputToolbar
+      {...props}
+      containerStyle={{
+        backgroundColor: theme.colors.card,
+        borderTopWidth: 0,
+        padding: 8,
+        paddingBottom: insets.bottom + 8,
+      }}
+      renderComposer={renderComposer}
+      renderSend={renderSend}
+    />
+  );
+
+  const renderAIControls = () => (
+    <View className="p-4 bg-gray-100 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+      <Text className="text-xs text-gray-500 mb-2">快速指令:</Text>
+      <View className="flex-row flex-wrap gap-2">
+        {[
+          "今天吃饭吃了肯德基花了50元",
+          "发工资 10000元",
+          "查询最近的收支",
+          "分析一下我最近的消费习惯",
+          "查询本月的支出",
+          "帮我查一下2025年10月的收支情况",
+        ].map((cmd, i) => (
+          <TouchableOpacity
+            key={i}
+            onPress={() =>
+              onSend([
+                {
+                  _id: generateUUID(),
+                  text: cmd,
+                  createdAt: new Date(),
+                  user: { _id: 1 },
+                },
+              ])
+            }
+            className="bg-blue-100 dark:bg-blue-900 px-3 py-1 rounded-full"
+          >
+            <Text className="text-xs text-blue-700 dark:text-blue-300">
+              {cmd}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
   );
 
   return (
-    <View
-      className="flex-1"
-      style={{ backgroundColor: theme.colors.background }}
-    >
+    <>
       <RNStatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
-      {/* We handle top inset in renderHeader manually if we don't use SafeAreaView for the whole container */}
 
-      {renderHeader()}
-      {renderAgentSelector()}
+      {/* Header */}
+      <View
+        className="flex-col px-4 py-2 border-b bg-card"
+        style={{
+          borderColor: theme.colors.border,
+          borderBottomColor: theme.colors.border,
+          backgroundColor: theme.colors.card,
+          paddingTop: insets.top > 0 ? insets.top : 10, // Handle notch if not in SafeAreaView or if we want custom padding
+        }}
+      >
+        {/* 第一行：返回按钮、标题、账户选择 */}
+        <View className="flex-row items-center justify-between">
+          {/* 返回按钮 */}
+          <TouchableOpacity onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+          </TouchableOpacity>
+
+          {/* 标题 */}
+          <Text
+            className="text-xl font-bold"
+            style={{ color: theme.colors.text }}
+          >
+            SmallCount AI (架构重构版)
+          </Text>
+
+          {/* 当前账本 */}
+          <TouchableOpacity
+            onPress={() => setShowAccountModal(true)}
+            className="flex-row items-center"
+          >
+            <Text
+              className="text-base font-medium mr-1"
+              style={{ color: theme.colors.text }}
+            >
+              {activeAccount?.name || "选择账本"}
+            </Text>
+            <Ionicons name="chevron-down" size={18} color={theme.colors.text} />
+          </TouchableOpacity>
+        </View>
+        
+        {/* 第二行：API Key 提示 */}
+        {!hasApiKey && (
+          <View className="flex-row items-center justify-center">
+              <Ionicons name="warning" size={16} color="#F44336" />
+              <Text
+                className="text-sm font-medium ml-1"
+                style={{ color: "#F44336" }}
+              >
+                需要配置 API Key 才能使用 AI 功能，
+              </Text>
+              <TouchableOpacity onPress={() => router.push('/aiSetting')}>
+                <Text
+                  className="text-sm font-medium underline"
+                  style={{ color: "#F44336" }}
+                >
+                  点击此处前往设置
+                </Text>
+              </TouchableOpacity>
+            </View>
+        )}
+      </View>
 
       <GiftedChat
         messages={messages}
-        onSend={(messages) => onSend(messages)}
-        user={{
-          _id: 1,
-        }}
+        onSend={onSend}
+        user={{ _id: 1 }}
         renderBubble={renderBubble}
         renderInputToolbar={renderInputToolbar}
-        renderAvatar={null} // No avatars in design
+        renderSystemMessage={renderSystemMessage}
         minInputToolbarHeight={60}
         keyboardAvoidingViewProps={{ keyboardVerticalOffset }}
+        isTyping={isTyping}
       />
-    </View>
+      {/* 账户选择模态框 */}
+      <AccountSelectModal
+        visible={showAccountModal}
+        onClose={() => setShowAccountModal(false)}
+        onSelect={handleAccountSelect}
+        selectedId={activeAccountId}
+        data={accounts}
+      />
+      
+      <Toast />
+    </>
   );
 }

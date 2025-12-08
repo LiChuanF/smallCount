@@ -1,7 +1,13 @@
-import { ExpoAgentCore } from "@/ai/lib2";
+import { AgentsCreate } from "@/ai/AgentsCreate";
+import { AGENT_IDS } from "@/ai/constant";
+import { ExpoAgentCore } from "@/ai/lib";
+import AccountSelectModal from "@/components/ui/AddTransaction/AccountSelectModal";
 import { useTheme } from "@/context/ThemeContext";
+import useDataStore from "@/storage/store/useDataStore";
+import useSettingStore from "@/storage/store/useSettingStore";
 import { generateUUID } from "@/utils/uuid";
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import * as React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -20,9 +26,9 @@ import {
   InputToolbar,
 } from "react-native-gifted-chat";
 import {
-  SafeAreaView,
-  useSafeAreaInsets,
+  useSafeAreaInsets
 } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
 // --- 1. Mock Data & Types ---
 interface Transaction {
@@ -34,58 +40,31 @@ interface Transaction {
   description: string;
 }
 
-// 模拟数据库
-let transactions: Transaction[] = [
-  {
-    id: "1",
-    type: "expense",
-    amount: 30,
-    category: "餐饮",
-    date: "2025-12-05",
-    description: "午餐",
-  },
-];
-
-// --- 2. Tool Handlers ---
-const addTransactionHandler = async (params: any) => {
-  const { type, amount, category, description } = params;
-  const newTx: Transaction = {
-    id: Math.random().toString(36).substr(2, 9),
-    type,
-    amount: Number(amount),
-    category,
-    date: new Date().toISOString().split("T")[0],
-    description: description || "",
-  };
-  transactions.push(newTx);
-  return {
-    success: true,
-    message: `已成功记录一笔${type === "income" ? "收入" : "支出"}：${amount}元，分类：${category}`,
-    data: newTx,
-  };
-};
-
-const queryTransactionsHandler = async (params: any) => {
-  // 简单模拟查询，实际场景可以根据 params 过滤
-  return {
-    success: true,
-    count: transactions.length,
-    transactions: transactions,
-  };
-};
-
 // --- 3. Main Component ---
 export default function AIDemo() {
   const { theme, isDarkMode } = useTheme();
   const insets = useSafeAreaInsets();
+
+  // 获取账本数据
+  const {
+    accounts,
+    activeAccount,
+    activeAccountId,
+    switchActiveAccount,
+    loadAccounts,
+  } = useDataStore();
+
+  // 获取AI配置
+  const { initializeConfig, apiKey, apiUrl: baseURL, modelName: defaultModel } = useSettingStore();
 
   // State
   const [messages, setMessages] = useState<IMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [core, setCore] = useState<ExpoAgentCore | null>(null);
   const [sessionId, setSessionId] = useState<string>("");
-
+  const [showAccountModal, setShowAccountModal] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [hasApiKey, setHasApiKey] = useState<boolean>(false);
   const responseBufferRef = useRef<string>("");
   const typingTimerRef = useRef<number | null>(null);
 
@@ -98,132 +77,54 @@ export default function AIDemo() {
   const keyboardVerticalOffset =
     insets.bottom + tabbarHeight + keyboardTopToolbarHeight;
 
-  // --- Initialization ---
-  useEffect(() => {
-    // 初始化 Core
-    const agentCore = new ExpoAgentCore({
-      apiKey: "sk-mewdvwtamzdkpsaiyzcqbbyelzscbyjeizfwzemitoovpnbr", // API密钥留空，用户需要自己填写
-      baseURL: "https://api.siliconflow.cn/v1",
-      defaultModel: "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B", // 使用默认模型
-      timeout: 30000,
+  function createSmallCountAgents() {
+    // 从 useSettingStore 获取 API 配置
+    
+    // 初始化 AgentsCreate
+    const agentsCreator = new AgentsCreate({
+      apiKey,
+      baseURL,
+      defaultModel,
+      timeout: 10 * 60,
     });
 
-    // ---------------------------------------------------------
-    // A. 注册工具 (Register Tools)
-    // ---------------------------------------------------------
-    agentCore.registerTool({
-      id: "addTransaction",
-      name: "addTransaction",
-      description: "添加一笔新的收支记录",
-      parameters: {
-        type: "object",
-        properties: {
-          type: {
-            type: "string",
-            description: "'income' (收入) 或 'expense' (支出)",
-            enum: ["income", "expense"],
-          },
-          amount: { type: "number", description: "金额" },
-          category: {
-            type: "string",
-            description: "分类，如：餐饮、交通、工资",
-          },
-          description: { type: "string", description: "备注描述" },
-        },
-        required: ["type", "amount", "category"],
-      },
-      handler: addTransactionHandler,
-    });
-
-    agentCore.registerTool({
-      id: "queryTransactions",
-      name: "queryTransactions",
-      description: "查询所有的收支记录数据",
-      parameters: {
-        type: "object",
-        properties: {
-          limit: { type: "number", description: "返回数量限制" },
-        },
-        required: [],
-      },
-      handler: queryTransactionsHandler,
-    });
-
-    // ---------------------------------------------------------
-    // B. 注册智能体 (Register Agents based on ai.md)
-    // ---------------------------------------------------------
-
-    // 1. SMALLCOUNT助手 (总入口)
-    agentCore.registerAgent({
-      id: "main_agent",
-      name: "SMALLCOUNT助手",
-      description: "主接待员，负责意图识别和分发。",
-      // System Prompt 核心逻辑：路由分发
-      systemPrompt: `你是一个智能记账助手的主脑。
-      你的职责是分析用户的意图，并将任务分发给专业的助手，或者直接回答简单的问候。
-      
-      路由规则：
-      1. 如果用户想要记账、修改数据、删除数据 -> 转接给 [DataOperator]。
-      2. 如果用户想要查询数据、分析收支、统计报表 -> 转接给 [Analyst]。
-      3. 如果只是打招呼或闲聊 -> 你可以直接回复。
-      
-      请勿直接调用数据工具，必须转接。`,
-      handoffs: ["data_agent", "analysis_agent"],
-      tools: [],
-    });
-
-    // 2. 数据操作助手
-    agentCore.registerAgent({
-      id: "data_agent",
-      name: "DataOperator",
-      description: "负责数据的增删改查操作。",
-      systemPrompt: `你是数据操作专员。你的职责是准确地记录或修改用户的数据。
-      
-      工作流程：
-      1. 使用工具完成用户的指令（如 addTransaction）。
-      2. 操作成功后，你必须将结果转接给 [Summarizer] 进行汇报。
-      3. 不要直接给用户最终回复，必须转接。`,
-      tools: ["addTransaction", "queryTransactions"],
-      handoffs: ["summary_agent"], // 强制流转到总结助手
-    });
-
-    // 3. 收支分析师
-    agentCore.registerAgent({
-      id: "analysis_agent",
-      name: "Analyst",
-      description: "负责数据分析和统计。",
-      systemPrompt: `你是专业的收支分析师。你的职责是读取数据并挖掘 insights。
-      
-      工作流程：
-      1. 使用工具查询必要的数据 (queryTransactions)。
-      2. 根据数据进行计算和分析。
-      3. 将分析结果转接给 [Summarizer] 进行汇报。
-      4. 不要直接给用户最终回复，必须转接。`,
-      tools: ["queryTransactions"],
-      handoffs: ["summary_agent"], // 强制流转到总结助手
-    });
-
-    // 4. 总结归纳助手 (出口)
-    agentCore.registerAgent({
-      id: "summary_agent",
-      name: "Summarizer",
-      description: "负责汇总信息并输出给用户。",
-      systemPrompt: `你是总结归纳助手。
-      你的上游同事（数据专员或分析师）已经完成了工作，并会把执行结果或分析数据传递给你。
-      
-      你的职责：
-      1. 将上游的技术性结果转化为用户友好的、温暖的自然语言。
-      2. 如果是分析结果，请使用清晰的格式（如列表）。
-      3. 你是直接面对用户的最终接口。`,
-      tools: [],
-      handoffs: [], // 末端节点
-    });
-
-    setCore(agentCore);
+    // 初始化所有工具和智能体
+    agentsCreator.initialize();
 
     // 创建会话
-    const newSessionId = agentCore.createSession("main_agent");
+    const sessionId = agentsCreator.createSession();
+
+    // 获取 agentCore 实例
+    const agentCore = agentsCreator.getAgentCore();
+
+    return {
+      agentsCreator,
+      agentCore,
+      sessionId,
+    };
+  }
+
+  // --- Initialization ---
+  useEffect(() => {
+    // 初始化AI配置
+    initializeConfig();
+    
+    // 检查API Key是否存在
+    checkApiKeyExists();
+    
+    // 初始化 Core
+    const { agentsCreator, agentCore, sessionId } = createSmallCountAgents();
+
+    setCore(agentsCreator.getAgentCore());
+
+    // 创建会话
+    const newSessionId = agentCore.createSession(
+      AGENT_IDS.SMALLCOUNT_ASSISTANT
+    );
     setSessionId(newSessionId);
+
+    // 初始化账本数据
+    loadAccounts();
 
     // Initial greeting
     setMessages([
@@ -235,7 +136,7 @@ export default function AIDemo() {
       },
       {
         _id: generateUUID(),
-        text: "🔮 欢迎使用全新的 SMALLCOUNT AI 系统！\n\n这是一个基于多智能体协作的智能记账助手，采用先进的 ExpoAgentCore 架构。系统包含多个专业智能体协同工作，为您提供更智能、更专业的记账服务。",
+        text: `🔮 欢迎使用SMALLCOUNT AI ！当前已选择账本：${activeAccount?.name || "无"}`,
         createdAt: new Date(),
         user: { _id: 3, name: "系统通知" },
         system: true,
@@ -247,9 +148,57 @@ export default function AIDemo() {
     };
   }, []);
 
-// ... 前面的 import 和 state 保持不变
+  // 监听 apiKey 变化
+  useEffect(() => {
+    checkApiKeyExists();
+  }, [apiKey]);
 
- // --- 辅助函数：清洗文本 ---
+  // 监听 hasApiKey 变化，更新提示消息
+  useEffect(() => {
+    // 检查是否已存在API Key提示消息
+    const hasApiKeyWarning = messages.some(
+      msg => msg.system && msg.text?.includes('您尚未配置 AI API Key')
+    );
+    
+    // 如果没有API Key且没有警告消息，添加警告
+    if (!hasApiKey && !hasApiKeyWarning) {
+      const warningMessage = {
+        _id: generateUUID(),
+        text: "⚠️ 您尚未配置 AI API Key，请点击右上角的「需要配置」按钮进行设置。配置完成后才能正常使用 AI 功能。",
+        createdAt: new Date(),
+        user: { _id: 3, name: "系统通知" },
+        system: true,
+      };
+      setMessages(prev => [...prev, warningMessage]);
+    }
+    // 如果有API Key且有警告消息，移除警告
+    else if (hasApiKey && hasApiKeyWarning) {
+      setMessages(prev => prev.filter(
+        msg => !(msg.system && msg.text?.includes('您尚未配置 AI API Key'))
+      ));
+    }
+  }, [hasApiKey]);
+
+  // 检查API Key是否存在
+  const checkApiKeyExists = () => {
+    const hasKey = !!(apiKey && apiKey.trim() !== '');
+    setHasApiKey(hasKey);
+    return hasKey;
+  };
+
+  // 处理账本选择
+  const handleAccountSelect = async (account: any) => {
+    try {
+      await switchActiveAccount(account.id);
+      setShowAccountModal(false);
+    } catch (error) {
+      console.error("切换账本失败:", error);
+    }
+  };
+
+  // ... 前面的 import 和 state 保持不变
+
+  // --- 辅助函数：清洗文本 ---
   const cleanText = (text: string) => {
     return text
       .replace(/<think>[\s\S]*?<\/think>/gi, "") // 移除深度思考过程
@@ -259,24 +208,28 @@ export default function AIDemo() {
       .trim();
   };
 
-   const startTypewriterEffect = (fullText: string) => {
+  const startTypewriterEffect = (fullText: string) => {
     const aiMessageId = generateUUID();
     const createdAt = new Date();
-    
+
     // 1. 先添加一个空的 AI 消息气泡
-    setMessages((prev) => GiftedChat.append(prev, [{
-      _id: aiMessageId,
-      text: " ", // 给一个空格占位，防止气泡塌陷
-      createdAt: createdAt,
-      user: { _id: 2, name: "SMALLCOUNT助手" },
-    }]));
+    setMessages((prev) =>
+      GiftedChat.append(prev, [
+        {
+          _id: aiMessageId,
+          text: " ", // 给一个空格占位，防止气泡塌陷
+          createdAt: createdAt,
+          user: { _id: 2, name: "SMALLCOUNT助手" },
+        },
+      ])
+    );
 
     let currentIndex = 0;
     const length = fullText.length;
     // 调整打字速度：数字越小越快。30ms 比较接近真实流式感
-    const speed = 30; 
+    const speed = 30;
     // 每次增加的字符数：增加到 2 或 3 可以让长文本显示得更流畅
-    const chunkSize = 2; 
+    const chunkSize = 3;
 
     const typeChar = () => {
       if (currentIndex < length) {
@@ -287,7 +240,7 @@ export default function AIDemo() {
         setMessages((prev) => {
           const next = [...prev];
           // 找到我们刚才创建的那条消息
-          const targetIndex = next.findIndex(m => m._id === aiMessageId);
+          const targetIndex = next.findIndex((m) => m._id === aiMessageId);
           if (targetIndex !== -1) {
             next[targetIndex] = {
               ...next[targetIndex],
@@ -296,7 +249,7 @@ export default function AIDemo() {
           }
           return next;
         });
-        
+
         // 继续下一帧
         typingTimerRef.current = setTimeout(typeChar, speed);
       } else {
@@ -308,15 +261,25 @@ export default function AIDemo() {
     // 启动打字
     typeChar();
   };
-   // --- Chat Handler ---
+  // --- Chat Handler ---
   const onSend = useCallback(
     (newMessages: IMessage[] = []) => {
+      // 检查是否有 API Key
+      if (!hasApiKey) {
+        Toast.show({
+          type: 'error',
+          text1: '无法发送消息',
+          text2: '请先配置 AI API Key，点击右上角的「需要配置」按钮进行设置',
+        });
+        return;
+      }
+      
       if (!core || !sessionId) return;
       const userMsg = newMessages[0];
       if (!userMsg?.text) return;
 
       // 重置默认代理为SMALLCOUNT助手
-      core.setCurrentAgent(sessionId, "main_agent");
+      core.setCurrentAgent(sessionId, AGENT_IDS.SMALLCOUNT_ASSISTANT);
 
       // 1. UI: 显示用户消息
       setMessages((prev) => GiftedChat.append(prev, newMessages));
@@ -324,7 +287,7 @@ export default function AIDemo() {
       setIsTyping(true);
       // 3. 重置缓冲区
       responseBufferRef.current = "";
-      
+
       // 如果上一次的打字动画还没播完，强制停止，直接显示完整结果（可选优化）
       if (typingTimerRef.current) {
         clearTimeout(typingTimerRef.current);
@@ -347,10 +310,10 @@ export default function AIDemo() {
         onAgentChange: (from, to) => {
           responseBufferRef.current = ""; // 丢弃废话
           const agentNameMap: Record<string, string> = {
-            main_agent: "总助手",
-            data_agent: "数据专员",
-            analysis_agent: "分析师",
-            summary_agent: "总结助手",
+            [AGENT_IDS.SMALLCOUNT_ASSISTANT]: "总助手",
+            [AGENT_IDS.DATA_OPERATOR]: "数据操作",
+            [AGENT_IDS.INCOME_EXPENSE_ANALYST]: "分析师",
+            [AGENT_IDS.SUMMARIZER]: "总结助手",
           };
           const name = agentNameMap[to] || to;
           addSystemStatusMessage(`🔄 正在转接给：${name}...`);
@@ -365,6 +328,7 @@ export default function AIDemo() {
 
           // 清洗文本
           const finalContent = cleanText(responseBufferRef.current);
+          console.log("已完成内容:", finalContent);
 
           if (finalContent) {
             // 关键：调用打字机效果函数
@@ -383,18 +347,18 @@ export default function AIDemo() {
 
       cancelRef.current = cancel;
     },
-    [core, sessionId]
+    [core, sessionId, hasApiKey]
   );
 
   // 组件卸载时清理定时器
   useEffect(() => {
     return () => {
-        if (typingTimerRef.current) {
-            clearTimeout(typingTimerRef.current);
-        }
-        if (cancelRef.current) {
-            cancelRef.current();
-        }
+      if (typingTimerRef.current) {
+        clearTimeout(typingTimerRef.current);
+      }
+      if (cancelRef.current) {
+        cancelRef.current();
+      }
     };
   }, []);
 
@@ -410,7 +374,7 @@ export default function AIDemo() {
     setMessages((prev) => GiftedChat.append(prev, [systemMessage]));
   };
 
- const handleStop = () => {
+  const handleStop = () => {
     if (cancelRef.current) {
       cancelRef.current();
       cancelRef.current = null;
@@ -418,17 +382,14 @@ export default function AIDemo() {
       addSystemStatusMessage("⏹️ 操作已停止");
     }
   };
-  
+
   // ... 其余渲染代码保持不变
   // Helper to update a specific message - now updates only the AI message
-  const updateAiMessage = (
-    msgId: string,
-    content: string
-  ) => {
+  const updateAiMessage = (msgId: string, content: string) => {
     setMessages((prev) => {
       const next = [...prev];
       const index = next.findIndex((m) => m._id === msgId);
-      
+
       if (index !== -1) {
         // 只更新AI消息的内容
         next[index] = {
@@ -439,7 +400,6 @@ export default function AIDemo() {
       return next;
     });
   };
-
 
   // --- 5. UI Components (Similar to original) ---
 
@@ -526,34 +486,39 @@ export default function AIDemo() {
 
   const renderSystemMessage = (props: any) => {
     const { currentMessage } = props;
-    
+
     if (!currentMessage?.system) return null;
 
     // 根据消息内容判断消息类型
-    const isStatusMessage = currentMessage.text?.includes("正在调用") || 
-                           currentMessage.text?.includes("转接任务") ||
-                           currentMessage.text?.includes("系统");
+    const isStatusMessage =
+      currentMessage.text?.includes("正在调用") ||
+      currentMessage.text?.includes("转接任务") ||
+      currentMessage.text?.includes("系统");
 
     return (
       <View className="items-center my-2">
-        <View 
-          className={`px-4 py-2 rounded-full flex-row items-center ${isStatusMessage ? 'max-w-xs' : 'max-w-md'}`}
+        <View
+          className={`px-4 py-2 rounded-full flex-row items-center ${isStatusMessage ? "max-w-xs" : "max-w-md"}`}
           style={{
-            backgroundColor: isDarkMode ? "rgba(59, 130, 246, 0.2)" : "rgba(59, 130, 246, 0.1)",
+            backgroundColor: isDarkMode
+              ? "rgba(59, 130, 246, 0.2)"
+              : "rgba(59, 130, 246, 0.1)",
             borderWidth: 1,
-            borderColor: isDarkMode ? "rgba(59, 130, 246, 0.3)" : "rgba(59, 130, 246, 0.2)",
+            borderColor: isDarkMode
+              ? "rgba(59, 130, 246, 0.3)"
+              : "rgba(59, 130, 246, 0.2)",
           }}
         >
           {isStatusMessage && (
-            <Ionicons 
-              name="information-circle-outline" 
-              size={14} 
+            <Ionicons
+              name="information-circle-outline"
+              size={14}
               color={theme.colors.primary}
               style={{ marginRight: 6 }}
             />
           )}
-          <Text 
-            className={`text-xs font-medium text-center ${isStatusMessage ? 'italic' : ''}`}
+          <Text
+            className={`text-xs font-medium text-center ${isStatusMessage ? "italic" : ""}`}
             style={{ color: theme.colors.primary }}
           >
             {currentMessage.text}
@@ -562,8 +527,6 @@ export default function AIDemo() {
       </View>
     );
   };
-
-
 
   const renderInputToolbar = (props: any) => (
     <InputToolbar
@@ -587,7 +550,9 @@ export default function AIDemo() {
           "今天吃饭吃了肯德基花了50元",
           "发工资 10000元",
           "查询最近的收支",
-          "分析一下我的消费习惯",
+          "分析一下我最近的消费习惯",
+          "查询本月的支出",
+          "帮我查一下2025年10月的收支情况",
         ].map((cmd, i) => (
           <TouchableOpacity
             key={i}
@@ -613,20 +578,68 @@ export default function AIDemo() {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+    <>
       <RNStatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
 
       {/* Header */}
       <View
-        className="flex-row items-center justify-between px-4 py-2 border-b bg-card"
-        style={{ borderColor: theme.colors.border }}
+        className="flex-col px-4 py-2 border-b bg-card"
+        style={{
+          borderColor: theme.colors.border,
+          borderBottomColor: theme.colors.border,
+          backgroundColor: theme.colors.card,
+          paddingTop: insets.top > 0 ? insets.top : 10, // Handle notch if not in SafeAreaView or if we want custom padding
+        }}
       >
-        <Text
-          className="text-xl font-bold"
-          style={{ color: theme.colors.text }}
-        >
-          SmallCount AI (架构重构版)
-        </Text>
+        {/* 第一行：返回按钮、标题、账本选择 */}
+        <View className="flex-row items-center justify-between">
+          {/* 返回按钮 */}
+          <TouchableOpacity onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+          </TouchableOpacity>
+
+          {/* 标题 */}
+          <Text
+            className="text-xl font-bold ml-[70px]"
+            style={{ color: theme.colors.text }}
+          >
+            SmallCount AI
+          </Text>
+
+          {/* 当前账本 */}
+          <TouchableOpacity
+            onPress={() => setShowAccountModal(true)}
+            className="flex-row items-center"
+          >
+            <Text
+              className="text-base font-medium mr-1 text-primary"
+            > 
+              当前账本：{activeAccount?.name || "选择账本"}
+            </Text>
+            <Ionicons name="chevron-down" size={18} color={theme.colors.text} />
+          </TouchableOpacity>
+        </View>
+        
+        {/* 第二行：API Key 提示 */}
+        {!hasApiKey && (
+          <View className="flex-row items-center justify-center">
+              <Ionicons name="warning" size={16} color="#F44336" />
+              <Text
+                className="text-sm font-medium ml-1"
+                style={{ color: "#F44336" }}
+              >
+                需要配置 API Key 才能使用 AI 功能，
+              </Text>
+              <TouchableOpacity onPress={() => router.push('/aiSetting')}>
+                <Text
+                  className="text-sm font-medium underline"
+                  style={{ color: "#F44336" }}
+                >
+                  点击此处前往设置
+                </Text>
+              </TouchableOpacity>
+            </View>
+        )}
       </View>
 
       <GiftedChat
@@ -640,8 +653,16 @@ export default function AIDemo() {
         keyboardAvoidingViewProps={{ keyboardVerticalOffset }}
         isTyping={isTyping}
       />
-
-      {renderAIControls()}
-    </SafeAreaView>
+      {/* 账本选择模态框 */}
+      <AccountSelectModal
+        visible={showAccountModal}
+        onClose={() => setShowAccountModal(false)}
+        onSelect={handleAccountSelect}
+        selectedId={activeAccountId}
+        data={accounts}
+      />
+      
+      <Toast />
+    </>
   );
 }

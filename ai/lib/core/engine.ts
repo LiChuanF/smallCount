@@ -41,13 +41,6 @@ export class Engine {
       let session = this.state.getSession(sessionId);
       Logger.info('Engine', `当前 Session 状态:`, session);
       if (!session) throw new Error(`Session ${sessionId} not found`);
-        if (input && input.trim() !== '') {
-                this.state.addMessage(sessionId, {
-                role: 'user',
-                content: input,
-                name: 'User'
-                });
-            }
       // 记录用户消息
       this.state.addMessage(sessionId, {
         role: 'user',
@@ -65,7 +58,7 @@ export class Engine {
         const agent = this.registry.getAgent(currentAgentId);
         if (!agent) throw new Error(`Agent ${currentAgentId} not found`);
 
-        Logger.info('Loop', `Step ${step}: 当前 Agent [${agent.name} (${currentAgentId})]`);
+        Logger.info('Loop', `Step ${step}: 当前 Agent [${agent.name}]`);
 
         // 1. 准备上下文
         const history = this.state.getHistory(sessionId);
@@ -92,7 +85,7 @@ export class Engine {
                 if (events.onError) events.onError(e);
               }
             },
-            this.abortController.signal
+            this.abortController.signal,
           );
         } catch (error) {
           if (this.abortController.signal.aborted) break;
@@ -149,6 +142,13 @@ export class Engine {
               content: `[System]: Task transferred from ${agent.name} to ${toolConfig.name}. Context: ${JSON.stringify(toolCall.args)}`,
               name: 'System'
             });
+            // 这里是重点（这里role为tool，后续会伪装用户发的消息，不然有些模型不会响应），按理说应该是system才对，但是如果是system的话可能会导致AI模型理解错误
+            this.state.addMessage(sessionId, {
+              role: 'tool',
+              content: `[System]: Task transferred from ${agent.name} to ${toolConfig.name}. Context: ${JSON.stringify(toolCall.args)}`,
+              name: 'System'
+            });
+
 
             if (events.onAgentChange) events.onAgentChange(fromAgent, toAgentId);
             
@@ -191,7 +191,7 @@ export class Engine {
           }
         } else {
           // === 分支 B: 没有工具调用 ===
-          Logger.info('Engine', `未检测到工具调用，任务可能已完成或等待用户输入。`);
+          Logger.info('Engine', `未检测到工具调用，任务可能已完成或等待用户输入，当前Agent: ${currentAgentId}`);
           
           // 如果当前 Agent 只是一个中间人 (如 DataOperator)，但它没有调用工具也没有转接，
           // 这通常意味着出错了 (Prompt 没遵循好)，或者它直接回复了用户。

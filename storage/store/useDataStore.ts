@@ -362,6 +362,7 @@ const useDataStore = createAppStore<DataStore>((set, get) => ({
       await get().groupTransactionsByDate(get().transactions);
       // 更新相关账户的余额
       await get().loadAccounts();
+      return newTransaction;
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : "添加交易失败",
@@ -527,6 +528,7 @@ const useDataStore = createAppStore<DataStore>((set, get) => ({
       );
       const { paymentMethods } = get();
       set({ paymentMethods: [...paymentMethods, newPaymentMethod] });
+      return newPaymentMethod
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : "添加支付方式失败",

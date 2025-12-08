@@ -135,16 +135,16 @@ export default function ProfilePage() {
             <SettingItem label="数据管理" onPress={() => {router.push("/importScreen")}} showArrow={true} />
           ),
         },
-        // {
-        //   key: "backup",
-        //   render: () => (
-        //     <SettingItem
-        //       label="备份与恢复"
-        //       onPress={() => {}}
-        //       showArrow={true}
-        //     />
-        //   ),
-        // },
+        {
+          key: "ai",
+          render: () => (
+            <SettingItem
+              label="AI设置"
+              onPress={() => {router.push("/aiSetting")}}
+              showArrow={true}
+            />
+          ),
+        },
       ],
     },
     {
